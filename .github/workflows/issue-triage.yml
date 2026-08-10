@@ -1,0 +1,42 @@
+name: Issue triage
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  issues: write
+
+jobs:
+  check-template:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Flag issues that skipped a template
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const body = context.payload.issue.body ?? "";
+            const usedTemplate = /^### /m.test(body);
+            if (usedTemplate) return;
+
+            const org = context.repo.owner;
+
+            await github.rest.issues.createComment({
+              owner: org,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: [
+                "This issue doesn't follow one of the issue templates, so there isn't enough here yet to act on.",
+                "",
+                `Please open a new issue using [one of the templates](https://github.com/${org}/${context.repo.repo}/issues/new/choose) — bug report, feature request, or unrecognised status — or, if this is a request for a new carrier or country, use [Discussions](https://github.com/${org}/.github/discussions/new/choose) instead.`,
+                "",
+                "Feel free to close this one and reopen with a template, or just add the missing details as a comment here.",
+              ].join("\n"),
+            });
+
+            await github.rest.issues.addLabels({
+              owner: org,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              labels: ["needs-info"],
+            });
