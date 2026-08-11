@@ -6,9 +6,11 @@ import pytest
 
 from custom_components.dpd.api import DpdApiError, DpdAuthError
 from custom_components.dpd.const import (
+    CAPABILITIES,
     CONF_DELIVERED_FILTER_AMOUNT,
     CONF_DELIVERED_FILTER_TYPE,
     CONF_INCLUDE_HISTORY,
+    KNOWN_CAPABILITIES,
     ParcelStatus,
 )
 from custom_components.dpd.coordinator import (
@@ -637,6 +639,25 @@ def test_normalize_returns_carrier_agnostic_keys():
     assert normalized["pickup_point"] is None
     assert normalized["url"].endswith("parcelNumber=01XYZ")
     assert normalized["raw"] is raw  # original payload preserved by identity
+
+
+def test_capabilities_are_known_values():
+    """A typo here would silently misreport this carrier on the docs site."""
+    assert CAPABILITIES <= KNOWN_CAPABILITIES
+
+
+def test_capabilities_match_the_missing_pickup_point_gap():
+    """CAPABILITIES must agree with test_normalize_returns_carrier_agnostic_keys
+    and test_normalize_carries_weight_and_dimensions_when_provided — DPD's
+    detail call fills weight/dimensions/history/window, but never a named
+    pickup point."""
+    assert CAPABILITIES == {
+        "weight",
+        "dimensions",
+        "delivery_window",
+        "url",
+        "history",
+    }
 
 
 def test_normalize_url_country_segment_follows_bu():
