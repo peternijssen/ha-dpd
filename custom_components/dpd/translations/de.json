@@ -1,0 +1,155 @@
+{
+  "title": "DPD",
+  "config": {
+    "step": {
+      "user": {
+        "title": "DPD",
+        "description": "Ist dein Land nicht dabei? [Hier anfragen]({issue_url}).",
+        "data": {
+          "email": "E-Mail-Adresse",
+          "password": "Passwort",
+          "bu": "Land"
+        }
+      },
+      "delivered": {
+        "title": "Zugestellte Pakete",
+        "data": {
+          "delivered_filter_type": "Filtern nach",
+          "delivered_filter_amount": "Anzahl"
+        },
+        "data_description": {
+          "delivered_filter_type": "Zugestellte Pakete der letzten X Tage anzeigen, oder auf die X neuesten beschränken.",
+          "delivered_filter_amount": "Anzahl der Tage oder Pakete, die angezeigt werden sollen."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Erneut bei DPD anmelden",
+        "data": {
+          "email": "E-Mail-Adresse",
+          "password": "Passwort"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "DPD ist nicht erreichbar. Überprüfe deine Netzwerkverbindung.",
+      "invalid_auth": "Ungültige E-Mail-Adresse oder ungültiges Passwort."
+    },
+    "abort": {
+      "already_configured": "Dieses DPD-Konto ist bereits eingerichtet.",
+      "reauth_successful": "Erneute Anmeldung erfolgreich.",
+      "unique_id_mismatch": "Melde dich mit demselben DPD-Konto erneut an, mit dem diese Integration eingerichtet wurde."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "DPD-Optionen",
+        "sections": {
+          "delivered": {
+            "name": "Zugestellte Pakete",
+            "data": {
+              "delivered_filter_type": "Filtern nach",
+              "delivered_filter_amount": "Anzahl"
+            },
+            "data_description": {
+              "delivered_filter_type": "Zugestellte Pakete der letzten X Tage anzeigen, oder auf die X neuesten beschränken.",
+              "delivered_filter_amount": "Anzahl der Tage oder Pakete, die angezeigt werden sollen."
+            }
+          },
+          "history": {
+            "name": "Paketverlauf",
+            "data": {
+              "include_history": "Statusverlauf einschließen"
+            },
+            "data_description": {
+              "include_history": "Fügt jedem Paket ein Verlaufsattribut mit jeder Statusaktualisierung hinzu (Zeitstempel, Status, Originaltext). Standardmäßig deaktiviert."
+            }
+          },
+          "polling": {
+            "name": "Aktualisierung",
+            "data": {
+              "refresh_interval": "Aktualisieren alle"
+            },
+            "data_description": {
+              "refresh_interval": "Wie oft die Integration bei DPD nach Paketaktualisierungen sucht. Ein langsameres Intervall ist schonender für die DPD-API; der Standardwert von 30 Minuten reicht für die meisten Pakete völlig aus."
+            }
+          }
+        }
+      }
+    }
+  },
+  "selector": {
+    "refresh_interval": {
+      "options": {
+        "15": "15 Minuten",
+        "30": "30 Minuten",
+        "60": "60 Minuten",
+        "120": "120 Minuten",
+        "240": "240 Minuten"
+      }
+    },
+    "delivered_filter_type": {
+      "options": {
+        "days": "Tage",
+        "parcels": "Anzahl der Pakete"
+      }
+    }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "parcel_registered": "Ein Paket wurde registriert",
+      "parcel_status_changed": "Der Status eines Pakets hat sich geändert",
+      "parcel_delivered": "Ein Paket wurde zugestellt",
+      "parcel_delivery_time_changed": "Die voraussichtliche Zustellzeit eines Pakets hat sich geändert",
+      "outgoing_parcel_status_changed": "Der Status eines ausgehenden Pakets hat sich geändert",
+      "outgoing_parcel_delivered": "Ein ausgehendes Paket wurde zugestellt"
+    }
+  },
+  "entity": {
+    "button": {
+      "refresh": {
+        "name": "Aktualisieren"
+      }
+    },
+    "calendar": {
+      "deliveries": {
+        "name": "Zustellungen"
+      }
+    },
+    "sensor": {
+      "incoming_parcels": {
+        "name": "Eingehende Pakete",
+        "unit_of_measurement": "Pakete"
+      },
+      "parcel": {
+        "name": "Paket {barcode}"
+      },
+      "outgoing_parcels": {
+        "name": "Ausgehende Pakete",
+        "unit_of_measurement": "Pakete"
+      },
+      "delivered_parcels": {
+        "name": "Zugestellte Pakete",
+        "unit_of_measurement": "Pakete"
+      },
+      "outgoing_delivered_parcels": {
+        "name": "Ausgehende zugestellte Pakete",
+        "unit_of_measurement": "Pakete"
+      },
+      "next_delivery": {
+        "name": "Nächste Zustellung"
+      },
+      "en_route_to_parcel_shop": {
+        "name": "Unterwegs zum ParcelShop",
+        "unit_of_measurement": "Pakete"
+      },
+      "awaiting_pickup": {
+        "name": "Abholbereit",
+        "unit_of_measurement": "Pakete"
+      },
+      "last_update": {
+        "name": "Letzte erfolgreiche Aktualisierung"
+      }
+    }
+  }
+}

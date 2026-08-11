@@ -60,6 +60,11 @@ class DpdApiClient:
         """Return the current DPD access token, or ``None`` if not yet logged in."""
         return self._token
 
+    @property
+    def bu(self) -> str:
+        """Return the configured DPD business unit (e.g. ``DPD-NL``)."""
+        return self._bu
+
     async def async_login(self) -> str:
         """Run the three-step auth flow and return the DPD access token.
 
@@ -157,7 +162,7 @@ class DpdApiClient:
         """
         params: dict[str, str] = {
             "parcelType": parcel_type,
-            "businessUnit": f"DPD-{self._bu.upper()}",
+            "businessUnit": self._bu,
             "lang": "en",
             "continueWithoutVerification": "false",
         }

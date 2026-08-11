@@ -600,6 +600,15 @@ def test_tracking_url_built_from_parcel_number():
     )
 
 
+def test_tracking_url_uses_bu_country_segment():
+    assert _tracking_url({"parcelNumber": "01ABC"}, "DPD-DE") == (
+        "https://www.dpdgroup.com/de/mydpd/my-parcels/search?parcelNumber=01ABC"
+    )
+    assert _tracking_url({"parcelNumber": "01ABC"}, "DPD-CH") == (
+        "https://www.dpdgroup.com/ch/mydpd/my-parcels/search?parcelNumber=01ABC"
+    )
+
+
 def test_tracking_url_returns_none_without_parcel_number():
     assert _tracking_url({}) is None
     assert _tracking_url({"parcelNumber": ""}) is None
@@ -628,6 +637,12 @@ def test_normalize_returns_carrier_agnostic_keys():
     assert normalized["pickup_point"] is None
     assert normalized["url"].endswith("parcelNumber=01XYZ")
     assert normalized["raw"] is raw  # original payload preserved by identity
+
+
+def test_normalize_url_country_segment_follows_bu():
+    raw = shipment_sample("PARCEL_OUT_FOR_DELIVERY", parcel_number="01XYZ")
+    normalized = normalize_parcel(raw, bu="DPD-DE")
+    assert normalized["url"].startswith("https://www.dpdgroup.com/de/mydpd/")
 
 
 def test_normalize_carries_receiver_when_provided():

@@ -63,6 +63,8 @@ CONF_BU = "bu"
 
 BUSINESS_UNITS = [
     {"value": "DPD-NL", "label": "Netherlands"},
+    {"value": "DPD-DE", "label": "Germany"},
+    {"value": "DPD-CH", "label": "Switzerland"},
 ]
 
 DEFAULT_BU = "DPD-NL"

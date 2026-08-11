@@ -44,9 +44,30 @@ entry. Runtime-only; the tests don't catch a regression here.
   coordinator takes `config_entry=entry`.
 
 **Business unit**
-- **Only `DPD-NL` is mapped** in `BUSINESS_UNITS`. Setup is BU-agnostic but the
-  tracking-URL builder (`_tracking_url`) hardcodes `/nl/` — **update it too if you
-  add a BU**. The user step's `description` links a pre-filled "Add country" issue.
+- **`DPD-NL`, `DPD-DE`, `DPD-CH`** are mapped in `BUSINESS_UNITS`. DE/CH were
+  added 2026-08-11 **without a captured payload** — see `dpd.md` and
+  `country-expansion.md` in the private `carrier-research` repo (org
+  discussion [#11](https://github.com/ha-parcel-integrations/.github/discussions/11)
+  is the DE demand signal, with an occasional tester lined up). The decision
+  to ship past that gate mirrors
+  `ha-gls`'s Germany release: an unauth probe confirmed DE/CH's `myDPD` web
+  login redirects through the *same* Keycloak realm and `client_id` as NL
+  (`login.dpdgroup.com/auth/realms/login`), and `auth.md`'s step 3
+  (`consignee-sso?bu=<BU>`) was already designed to take a `bu` value — but
+  nobody has confirmed the `v7/parcels` list/detail payload shape for a
+  non-NL account. Treat any DE/CH field mismatch as expected until a real
+  capture arrives; `KNOWN_DESCRIPTIONS`'s existing one-shot
+  `UNKNOWN`+`WARNING` fallback (see *Status & pickup* below) is the safety
+  net, not new code written for this.
+- `_tracking_url` derives its country segment from the account's `bu`
+  (`DPD-DE` → `/de/`) rather than hardcoding `/nl/` — **no per-BU mapping
+  table needed** as long as a new BU's value keeps the `DPD-<CC>` shape.
+  Same for `api.py`'s parcel-detail `businessUnit` param (previously double
+  chevron-prefixed as `DPD-DPD-NL`, unnoticed because detail-call failures
+  are swallowed — fixed alongside DE/CH since a wrong param would have hit
+  every non-NL account immediately).
+- The user step's `description` still links a pre-filled "Add country" issue
+  for anything beyond NL/DE/CH.
 
 **Status & pickup**
 - The raw description lives on `raw_status`, never `status`; unmapped →

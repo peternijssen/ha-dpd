@@ -173,6 +173,7 @@ class DpdCoordinator(DataUpdateCoordinator[dict[str, list[dict]]]):
                 weight=weight,
                 dimensions=dimensions,
                 history=history,
+                bu=self._client.bu,
             )
 
         normalized_active = sort_parcels_by_ts(

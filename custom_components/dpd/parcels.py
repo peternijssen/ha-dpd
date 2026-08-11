@@ -15,6 +15,7 @@ from homeassistant.config_entries import ConfigEntry
 from .const import (
     CONF_DELIVERED_FILTER_AMOUNT,
     CONF_DELIVERED_FILTER_TYPE,
+    DEFAULT_BU,
     DEFAULT_DELIVERED_FILTER_AMOUNT,
     DEFAULT_DELIVERED_FILTER_TYPE,
     DELIVERED_DESCRIPTION,
@@ -280,18 +281,19 @@ def filter_delivered_shipments(shipments: list[dict]) -> list[dict]:
     return [s for s in shipments if _description(s) == DELIVERED_DESCRIPTION]
 
 
-def _tracking_url(parcel: dict) -> str | None:
+def _tracking_url(parcel: dict, bu: str = DEFAULT_BU) -> str | None:
     """Build the DPD tracking URL for a parcel, or ``None`` when no parcelNumber.
 
-    The ``/nl/`` segment is hardcoded while only DPD-NL is supported as
-    a business unit — see CLAUDE.md. When more BUs are added, map each
-    to its tracking-page country code.
+    The country segment is derived from the business unit (``DPD-DE`` ->
+    ``de``) rather than hardcoded, so it follows whichever BU the account
+    was set up with.
     """
     parcel_number = parcel.get("parcelNumber")
     if not parcel_number:
         return None
+    country = bu.removeprefix("DPD-").lower()
     return (
-        f"https://www.dpdgroup.com/nl/mydpd/my-parcels/search?"
+        f"https://www.dpdgroup.com/{country}/mydpd/my-parcels/search?"
         f"parcelNumber={parcel_number}"
     )
 
@@ -303,6 +305,7 @@ def normalize_parcel(
     weight: float | None = None,
     dimensions: dict | None = None,
     history: list[dict] | None = None,
+    bu: str = DEFAULT_BU,
 ) -> dict:
     """Return a carrier-agnostic parcel dict with the DPD payload under ``raw``.
 
@@ -327,6 +330,9 @@ def normalize_parcel(
     ``history`` is the optional per-parcel status timeline (opt-in option,
     default off → ``None``). It is also detail-endpoint sourced and stays
     top-level so it survives the aggregator's ``strip_raw()``.
+
+    ``bu`` is the account's business unit (e.g. ``DPD-DE``), used only to
+    build the country segment of the tracking URL.
     """
     description = _description(parcel)
     delivered = description == DELIVERED_DESCRIPTION
@@ -354,7 +360,7 @@ def normalize_parcel(
         "planned_to": planned_to,
         "pickup": is_pickup,
         "pickup_point": None,
-        "url": _tracking_url(parcel),
+        "url": _tracking_url(parcel, bu),
         "weight": weight,
         "dimensions": dimensions,
         "history": history,

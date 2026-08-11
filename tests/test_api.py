@@ -57,6 +57,16 @@ async def test_access_token_is_none_before_login():
     assert client.access_token is None
 
 
+def test_bu_property_reflects_configured_business_unit():
+    client = DpdApiClient(
+        email="user@example.com",
+        password="secret",
+        session=_mock_session(),
+        bu="DPD-CH",
+    )
+    assert client.bu == "DPD-CH"
+
+
 # ---------------------------------------------------------------------------
 # Keycloak step
 # ---------------------------------------------------------------------------
@@ -240,6 +250,27 @@ async def test_get_parcel_detail_returns_body_on_200():
     client._token = "main-token"
     result = await client.async_get_parcel_detail("01XXX", shipment_bu_code="021")
     assert result == payload
+
+
+@pytest.mark.asyncio
+async def test_get_parcel_detail_sends_the_configured_bu_unmodified():
+    """The businessUnit param must equal the account's own bu value
+
+    (e.g. ``DPD-DE``), not a re-prefixed/re-cased variant — a mismatch here
+    silently breaks receiver/weight/dimensions enrichment for that account
+    since detail-call failures are swallowed and never surface to the user.
+    """
+    session = _mock_session(_mock_response(200, {}))
+    client = DpdApiClient(
+        email="user@example.com",
+        password="secret",
+        session=session,
+        bu="DPD-DE",
+    )
+    client._token = "main-token"
+    await client.async_get_parcel_detail("01XXX")
+    _, kwargs = session.post.call_args
+    assert kwargs["params"]["businessUnit"] == "DPD-DE"
 
 
 @pytest.mark.asyncio
