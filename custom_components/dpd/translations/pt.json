@@ -1,0 +1,174 @@
+{
+  "title": "DPD",
+  "config": {
+    "step": {
+      "user": {
+        "title": "DPD",
+        "description": "O seu país não está na lista? [Peça aqui]({issue_url}).",
+        "data": {
+          "email": "E-mail",
+          "password": "Palavra-passe",
+          "bu": "País"
+        }
+      },
+      "delivered": {
+        "title": "Encomendas entregues",
+        "data": {
+          "delivered_filter_type": "Filtrar por",
+          "delivered_filter_amount": "Quantidade"
+        },
+        "data_description": {
+          "delivered_filter_type": "Mostrar encomendas entregues dos últimos X dias, ou limitar às X mais recentes.",
+          "delivered_filter_amount": "Número de dias ou encomendas a mostrar."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Reautenticar DPD",
+        "data": {
+          "email": "E-mail",
+          "password": "Palavra-passe"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Não é possível contactar a DPD. Verifique a sua ligação de rede.",
+      "invalid_auth": "E-mail ou palavra-passe inválidos."
+    },
+    "abort": {
+      "already_configured": "Esta conta DPD já está configurada.",
+      "reauth_successful": "Reautenticação bem-sucedida.",
+      "unique_id_mismatch": "Reautentique-se com a mesma conta DPD com que esta integração foi configurada."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Opções DPD",
+        "sections": {
+          "delivered": {
+            "name": "Encomendas entregues",
+            "data": {
+              "delivered_filter_type": "Filtrar por",
+              "delivered_filter_amount": "Quantidade"
+            },
+            "data_description": {
+              "delivered_filter_type": "Mostrar encomendas entregues dos últimos X dias, ou limitar às X mais recentes.",
+              "delivered_filter_amount": "Número de dias ou encomendas a mostrar."
+            }
+          },
+          "history": {
+            "name": "Histórico de encomendas",
+            "data": {
+              "include_history": "Incluir histórico de estados"
+            },
+            "data_description": {
+              "include_history": "Adiciona um atributo de histórico por encomenda com cada atualização de estado (data/hora, estado, texto original). Desativado por predefinição."
+            }
+          },
+          "polling": {
+            "name": "Atualização",
+            "data": {
+              "refresh_interval": "Atualizar a cada"
+            },
+            "data_description": {
+              "refresh_interval": "Com que frequência a integração verifica a DPD para atualizações de encomendas. Um intervalo mais lento é mais leve para a API da DPD; o padrão de 30 minutos é suficiente para a maioria das encomendas."
+            }
+          }
+        }
+      }
+    }
+  },
+  "selector": {
+    "refresh_interval": {
+      "options": {
+        "15": "15 minutos",
+        "30": "30 minutos",
+        "60": "60 minutos",
+        "120": "120 minutos",
+        "240": "240 minutos"
+      }
+    },
+    "delivered_filter_type": {
+      "options": {
+        "days": "Dias",
+        "parcels": "Número de encomendas"
+      }
+    },
+    "bu": {
+      "options": {
+        "dpd-nl": "Países Baixos",
+        "dpd-ar": "Argentina",
+        "dpd-be": "Bélgica",
+        "dpd-hr": "Croácia",
+        "dpd-cz": "República Checa",
+        "dpd-ee": "Estónia",
+        "dpd-fr": "França",
+        "dpd-hu": "Hungria",
+        "brt": "Itália",
+        "dpd-lv": "Letónia",
+        "dpd-lt": "Lituânia",
+        "dpd-lu": "Luxemburgo",
+        "chr-pt": "Portugal",
+        "dpd-sk": "Eslováquia",
+        "dpd-si": "Eslovénia"
+      }
+    }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "parcel_registered": "Uma encomenda foi registada",
+      "parcel_status_changed": "O estado de uma encomenda mudou",
+      "parcel_delivered": "Uma encomenda foi entregue",
+      "parcel_delivery_time_changed": "A hora de entrega prevista de uma encomenda mudou",
+      "outgoing_parcel_status_changed": "O estado de uma encomenda de saída mudou",
+      "outgoing_parcel_delivered": "Uma encomenda de saída foi entregue"
+    }
+  },
+  "entity": {
+    "button": {
+      "refresh": {
+        "name": "Atualizar"
+      }
+    },
+    "calendar": {
+      "deliveries": {
+        "name": "Entregas"
+      }
+    },
+    "sensor": {
+      "incoming_parcels": {
+        "name": "Encomendas recebidas",
+        "unit_of_measurement": "encomendas"
+      },
+      "parcel": {
+        "name": "Encomenda {barcode}"
+      },
+      "outgoing_parcels": {
+        "name": "Encomendas enviadas",
+        "unit_of_measurement": "encomendas"
+      },
+      "delivered_parcels": {
+        "name": "Encomendas entregues",
+        "unit_of_measurement": "encomendas"
+      },
+      "outgoing_delivered_parcels": {
+        "name": "Encomendas enviadas entregues",
+        "unit_of_measurement": "encomendas"
+      },
+      "next_delivery": {
+        "name": "Próxima entrega"
+      },
+      "en_route_to_parcel_shop": {
+        "name": "A caminho do ParcelShop",
+        "unit_of_measurement": "encomendas"
+      },
+      "awaiting_pickup": {
+        "name": "Pronto para levantamento",
+        "unit_of_measurement": "encomendas"
+      },
+      "last_update": {
+        "name": "Última atualização bem-sucedida"
+      }
+    }
+  }
+}

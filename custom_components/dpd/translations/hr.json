@@ -1,0 +1,174 @@
+{
+  "title": "DPD",
+  "config": {
+    "step": {
+      "user": {
+        "title": "DPD",
+        "description": "Nema vaše zemlje na popisu? [Zatražite je ovdje]({issue_url}).",
+        "data": {
+          "email": "E-pošta",
+          "password": "Lozinka",
+          "bu": "Zemlja"
+        }
+      },
+      "delivered": {
+        "title": "Dostavljeni paketi",
+        "data": {
+          "delivered_filter_type": "Filtriraj po",
+          "delivered_filter_amount": "Broj"
+        },
+        "data_description": {
+          "delivered_filter_type": "Prikaži dostavljene pakete iz posljednjih X dana ili ograniči na X najnovijih.",
+          "delivered_filter_amount": "Broj dana ili paketa za prikaz."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Ponovna autentifikacija za DPD",
+        "data": {
+          "email": "E-pošta",
+          "password": "Lozinka"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "DPD nije dostupan. Provjerite mrežnu vezu.",
+      "invalid_auth": "Neispravna e-pošta ili lozinka."
+    },
+    "abort": {
+      "already_configured": "Ovaj DPD račun je već konfiguriran.",
+      "reauth_successful": "Ponovna autentifikacija uspješna.",
+      "unique_id_mismatch": "Ponovno se autentificirajte s istim DPD računom s kojim je ova integracija postavljena."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "DPD opcije",
+        "sections": {
+          "delivered": {
+            "name": "Dostavljeni paketi",
+            "data": {
+              "delivered_filter_type": "Filtriraj po",
+              "delivered_filter_amount": "Broj"
+            },
+            "data_description": {
+              "delivered_filter_type": "Prikaži dostavljene pakete iz posljednjih X dana ili ograniči na X najnovijih.",
+              "delivered_filter_amount": "Broj dana ili paketa za prikaz."
+            }
+          },
+          "history": {
+            "name": "Povijest paketa",
+            "data": {
+              "include_history": "Uključi povijest statusa"
+            },
+            "data_description": {
+              "include_history": "Dodaje atribut povijesti po paketu s popisom svake promjene statusa (vrijeme, status, izvorni tekst). Zadano isključeno."
+            }
+          },
+          "polling": {
+            "name": "Osvježavanje",
+            "data": {
+              "refresh_interval": "Osvježi svakih"
+            },
+            "data_description": {
+              "refresh_interval": "Koliko često integracija provjerava DPD za ažuriranja paketa. Sporiji interval je blaži prema DPD-ovom API-ju; zadanih 30 minuta dovoljno je za većinu paketa."
+            }
+          }
+        }
+      }
+    }
+  },
+  "selector": {
+    "refresh_interval": {
+      "options": {
+        "15": "15 minuta",
+        "30": "30 minuta",
+        "60": "60 minuta",
+        "120": "120 minuta",
+        "240": "240 minuta"
+      }
+    },
+    "delivered_filter_type": {
+      "options": {
+        "days": "Dani",
+        "parcels": "Broj paketa"
+      }
+    },
+    "bu": {
+      "options": {
+        "dpd-nl": "Nizozemska",
+        "dpd-ar": "Argentina",
+        "dpd-be": "Belgija",
+        "dpd-hr": "Hrvatska",
+        "dpd-cz": "Češka",
+        "dpd-ee": "Estonija",
+        "dpd-fr": "Francuska",
+        "dpd-hu": "Mađarska",
+        "brt": "Italija",
+        "dpd-lv": "Latvija",
+        "dpd-lt": "Litva",
+        "dpd-lu": "Luksemburg",
+        "chr-pt": "Portugal",
+        "dpd-sk": "Slovačka",
+        "dpd-si": "Slovenija"
+      }
+    }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "parcel_registered": "Paket je registriran",
+      "parcel_status_changed": "Status paketa se promijenio",
+      "parcel_delivered": "Paket je dostavljen",
+      "parcel_delivery_time_changed": "Očekivano vrijeme dostave paketa se promijenilo",
+      "outgoing_parcel_status_changed": "Status odlaznog paketa se promijenio",
+      "outgoing_parcel_delivered": "Odlazni paket je dostavljen"
+    }
+  },
+  "entity": {
+    "button": {
+      "refresh": {
+        "name": "Osvježi"
+      }
+    },
+    "calendar": {
+      "deliveries": {
+        "name": "Dostave"
+      }
+    },
+    "sensor": {
+      "incoming_parcels": {
+        "name": "Dolazni paketi",
+        "unit_of_measurement": "paketa"
+      },
+      "parcel": {
+        "name": "Paket {barcode}"
+      },
+      "outgoing_parcels": {
+        "name": "Odlazni paketi",
+        "unit_of_measurement": "paketa"
+      },
+      "delivered_parcels": {
+        "name": "Dostavljeni paketi",
+        "unit_of_measurement": "paketa"
+      },
+      "outgoing_delivered_parcels": {
+        "name": "Dostavljeni odlazni paketi",
+        "unit_of_measurement": "paketa"
+      },
+      "next_delivery": {
+        "name": "Sljedeća dostava"
+      },
+      "en_route_to_parcel_shop": {
+        "name": "Na putu do ParcelShopa",
+        "unit_of_measurement": "paketa"
+      },
+      "awaiting_pickup": {
+        "name": "Spremno za preuzimanje",
+        "unit_of_measurement": "paketa"
+      },
+      "last_update": {
+        "name": "Posljednje uspješno ažuriranje"
+      }
+    }
+  }
+}

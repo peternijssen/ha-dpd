@@ -13,6 +13,8 @@ from zoneinfo import ZoneInfo
 from homeassistant.config_entries import ConfigEntry
 
 from .const import (
+    BU_COUNTRY_OVERRIDES,
+    BU_TRACKING_URL_OVERRIDES,
     CONF_DELIVERED_FILTER_AMOUNT,
     CONF_DELIVERED_FILTER_TYPE,
     DEFAULT_BU,
@@ -286,12 +288,16 @@ def _tracking_url(parcel: dict, bu: str = DEFAULT_BU) -> str | None:
 
     The country segment is derived from the business unit (``DPD-DE`` ->
     ``de``) rather than hardcoded, so it follows whichever BU the account
-    was set up with.
+    was set up with. ``CHR-PT`` doesn't follow the ``DPD-<CC>`` shape (see
+    ``BU_COUNTRY_OVERRIDES``); ``BRT`` (Italy) isn't on dpdgroup.com at all
+    (see ``BU_TRACKING_URL_OVERRIDES``).
     """
     parcel_number = parcel.get("parcelNumber")
     if not parcel_number:
         return None
-    country = bu.removeprefix("DPD-").lower()
+    if override := BU_TRACKING_URL_OVERRIDES.get(bu):
+        return override.format(parcel_number=parcel_number)
+    country = BU_COUNTRY_OVERRIDES.get(bu, bu.removeprefix("DPD-").lower())
     return (
         f"https://www.dpdgroup.com/{country}/mydpd/my-parcels/search?"
         f"parcelNumber={parcel_number}"

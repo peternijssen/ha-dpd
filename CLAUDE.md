@@ -44,30 +44,59 @@ entry. Runtime-only; the tests don't catch a regression here.
   coordinator takes `config_entry=entry`.
 
 **Business unit**
-- **`DPD-NL`, `DPD-DE`, `DPD-CH`** are mapped in `BUSINESS_UNITS`. DE/CH were
-  added 2026-08-11 **without a captured payload** — see `dpd.md` and
-  `country-expansion.md` in the private `carrier-research` repo (org
-  discussion [#11](https://github.com/ha-parcel-integrations/.github/discussions/11)
-  is the DE demand signal, with an occasional tester lined up). The decision
-  to ship past that gate mirrors
-  `ha-gls`'s Germany release: an unauth probe confirmed DE/CH's `myDPD` web
-  login redirects through the *same* Keycloak realm and `client_id` as NL
-  (`login.dpdgroup.com/auth/realms/login`), and `auth.md`'s step 3
-  (`consignee-sso?bu=<BU>`) was already designed to take a `bu` value — but
-  nobody has confirmed the `v7/parcels` list/detail payload shape for a
-  non-NL account. Treat any DE/CH field mismatch as expected until a real
-  capture arrives; `KNOWN_DESCRIPTIONS`'s existing one-shot
+- **`BUSINESS_UNITS`** holds NL plus 14 more BUs (`DPD-AR`, `DPD-BE`,
+  `DPD-HR`, `DPD-CZ`, `DPD-EE`, `DPD-FR`, `DPD-HU`, `BRT`, `DPD-LV`,
+  `DPD-LT`, `DPD-LU`, `CHR-PT`, `DPD-SK`, `DPD-SI`) confirmed (2026-08-13) to
+  share NL's account backend/auth by **two independent lines of evidence** —
+  the myDPD web preferences dropdown *and* the shared myDPD Android app's own
+  embedded BU list — see `dpd.md` (Log, 2026-08-11 entries) in the private
+  `carrier-research` repo. A non-NL `v7/parcels` list/detail payload shape is
+  still **unconfirmed by a live capture**; treat any field mismatch as
+  expected until one arrives. `KNOWN_DESCRIPTIONS`'s existing one-shot
   `UNKNOWN`+`WARNING` fallback (see *Status & pickup* below) is the safety
   net, not new code written for this.
+- **`DPD-DE` and `DPD-CH` are deliberately absent.** DE briefly shipped in
+  2.8.0 as a blind pre-release, then was confirmed (2026-08-11, live probe
+  with a real DE account) to run on a wholly separate stack —
+  `portal.dpd.de`, ASP.NET WebForms, no shared Keycloak realm, same shape as
+  Poland — and cannot work through this repo's `api.py` at any BU value; it
+  needs its own build like `dpd-pl` would. CH looked plausible (present in
+  both the dropdown and the app's BU list) but the maintainer found evidence
+  of a possibly-separate dedicated Swiss app too — unresolved, so it stays
+  out until it gets its own individual investigation, same as
+  PL/UK/DE. **Do not re-add either without a fresh capture.**
 - `_tracking_url` derives its country segment from the account's `bu`
-  (`DPD-DE` → `/de/`) rather than hardcoding `/nl/` — **no per-BU mapping
-  table needed** as long as a new BU's value keeps the `DPD-<CC>` shape.
-  Same for `api.py`'s parcel-detail `businessUnit` param (previously double
-  chevron-prefixed as `DPD-DPD-NL`, unnoticed because detail-call failures
-  are swallowed — fixed alongside DE/CH since a wrong param would have hit
-  every non-NL account immediately).
+  (`DPD-DE` → `/de/`) rather than hardcoding `/nl/` — **`BU_COUNTRY_OVERRIDES`
+  in `const.py`** handles the one BU whose code doesn't map to its country
+  the obvious way (`CHR-PT` → `pt`). Same for `api.py`'s parcel-detail
+  `businessUnit` param (previously double chevron-prefixed as
+  `DPD-DPD-NL`, unnoticed because detail-call failures are swallowed).
+- **`BU_TRACKING_URL_OVERRIDES` in `const.py`** handles BUs whose tracking
+  page isn't `dpdgroup.com/<country>/mydpd/...` at all — confirmed
+  (2026-08-13, live link check) for `BRT` (Italy): the acquired BRT brand
+  lives entirely on `mybrt.it`, not dpdgroup.com; `dpdgroup.com/it/mybrt/...`
+  404s, so this needed a full URL override, not just a brand-segment tweak.
+  Check any newly-added acquired-brand BU (not a plain `DPD-<CC>` code)
+  against a real tracking link before assuming the default template works.
+- **The BU selector's option values are lower-case** (`dpd-nl`, not
+  `DPD-NL`) because they double as translation keys and hassfest requires
+  `[a-z0-9-_]+` with no upper-case — the same rule that bit `ha-gls`'s
+  country selector. `async_step_user` immediately `.upper()`s the submitted
+  value before use/storage; the stored/internal `bu` value everywhere else
+  (API calls, `unique_id`, `entry.data`) stays upper-case, unchanged. Don't
+  "simplify" this back to a shared-case value — the upper-case form is what
+  DPD's API expects.
+- **Every supported country's language has its own translation file**
+  (`translations/<lang>.json`), including a translated `selector.bu.options`
+  block for the dropdown itself — not just an English/Dutch/German UI with
+  translated labels tacked onto foreign BUs. A new BU therefore needs its
+  option added to **all** translation files' `selector.bu.options`, not just
+  `const.py`'s `BUSINESS_UNITS` — verify with the structural key-parity
+  check (compare every file's flattened key set against `en.json`) before
+  committing, the same way `dpd.md`'s in-repo history caught a bad
+  interleave once already.
 - The user step's `description` still links a pre-filled "Add country" issue
-  for anything beyond NL/DE/CH.
+  for anything beyond the supported list.
 
 **Status & pickup**
 - The raw description lives on `raw_status`, never `status`; unmapped →

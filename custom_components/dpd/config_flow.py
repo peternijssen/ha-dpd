@@ -41,7 +41,12 @@ _LOGGER = logging.getLogger(__name__)
 
 _BU_SELECTOR = selector.SelectSelector(
     selector.SelectSelectorConfig(
-        options=[selector.SelectOptionDict(**bu) for bu in BUSINESS_UNITS],
+        # Option values double as translation keys (hassfest requires
+        # lower-case, no upper-case BU codes like ``DPD-DE``) — the
+        # upper-case value HA stores/sends to the API is recovered via
+        # ``.upper()`` right after the form submits (see async_step_user).
+        options=[bu["value"].lower() for bu in BUSINESS_UNITS],
+        translation_key=CONF_BU,
         mode=selector.SelectSelectorMode.DROPDOWN,
     )
 )
@@ -122,7 +127,7 @@ class DpdConfigFlow(ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             email = user_input[CONF_EMAIL]
             password = user_input[CONF_PASSWORD]
-            bu = user_input[CONF_BU]
+            bu = user_input[CONF_BU].upper()
 
             try:
                 await self._validate_credentials(email, password, bu)

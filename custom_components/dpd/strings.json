@@ -93,6 +93,25 @@
         "days": "Days",
         "parcels": "Number of parcels"
       }
+    },
+    "bu": {
+      "options": {
+        "dpd-nl": "Netherlands",
+        "dpd-ar": "Argentina",
+        "dpd-be": "Belgium",
+        "dpd-hr": "Croatia",
+        "dpd-cz": "Czech Republic",
+        "dpd-ee": "Estonia",
+        "dpd-fr": "France",
+        "dpd-hu": "Hungary",
+        "brt": "Italy",
+        "dpd-lv": "Latvia",
+        "dpd-lt": "Lithuania",
+        "dpd-lu": "Luxembourg",
+        "chr-pt": "Portugal",
+        "dpd-sk": "Slovakia",
+        "dpd-si": "Slovenia"
+      }
     }
   },
   "device_automation": {

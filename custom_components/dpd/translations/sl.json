@@ -1,0 +1,174 @@
+{
+  "title": "DPD",
+  "config": {
+    "step": {
+      "user": {
+        "title": "DPD",
+        "description": "Ali vaše države ni na seznamu? [Zahtevajte jo tukaj]({issue_url}).",
+        "data": {
+          "email": "E-pošta",
+          "password": "Geslo",
+          "bu": "Država"
+        }
+      },
+      "delivered": {
+        "title": "Dostavljeni paketi",
+        "data": {
+          "delivered_filter_type": "Filtriraj po",
+          "delivered_filter_amount": "Količina"
+        },
+        "data_description": {
+          "delivered_filter_type": "Prikaži dostavljene pakete iz zadnjih X dni ali omeji na X najnovejših.",
+          "delivered_filter_amount": "Število dni ali paketov za prikaz."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Ponovno preveri pristnost DPD",
+        "data": {
+          "email": "E-pošta",
+          "password": "Geslo"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "DPD ni dosegljiv. Preverite omrežno povezavo.",
+      "invalid_auth": "Neveljaven e-poštni naslov ali geslo."
+    },
+    "abort": {
+      "already_configured": "Ta DPD račun je že konfiguriran.",
+      "reauth_successful": "Ponovno preverjanje pristnosti je uspelo.",
+      "unique_id_mismatch": "Ponovno preverite pristnost z istim DPD računom, s katerim je bila ta integracija nastavljena."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Možnosti DPD",
+        "sections": {
+          "delivered": {
+            "name": "Dostavljeni paketi",
+            "data": {
+              "delivered_filter_type": "Filtriraj po",
+              "delivered_filter_amount": "Količina"
+            },
+            "data_description": {
+              "delivered_filter_type": "Prikaži dostavljene pakete iz zadnjih X dni ali omeji na X najnovejših.",
+              "delivered_filter_amount": "Število dni ali paketov za prikaz."
+            }
+          },
+          "history": {
+            "name": "Zgodovina paketov",
+            "data": {
+              "include_history": "Vključi zgodovino stanj"
+            },
+            "data_description": {
+              "include_history": "Vsakemu paketu doda atribut zgodovine s seznamom vsake posodobitve stanja (časovni žig, stanje, izvirno besedilo). Privzeto izklopljeno."
+            }
+          },
+          "polling": {
+            "name": "Osveževanje",
+            "data": {
+              "refresh_interval": "Osveži vsakih"
+            },
+            "data_description": {
+              "refresh_interval": "Kako pogosto integracija preverja DPD za posodobitve paketov. Počasnejši interval je prijaznejši do DPD-jevega API-ja; privzetih 30 minut zadostuje za večino paketov."
+            }
+          }
+        }
+      }
+    }
+  },
+  "selector": {
+    "refresh_interval": {
+      "options": {
+        "15": "15 minut",
+        "30": "30 minut",
+        "60": "60 minut",
+        "120": "120 minut",
+        "240": "240 minut"
+      }
+    },
+    "delivered_filter_type": {
+      "options": {
+        "days": "Dnevi",
+        "parcels": "Število paketov"
+      }
+    },
+    "bu": {
+      "options": {
+        "dpd-nl": "Nizozemska",
+        "dpd-ar": "Argentina",
+        "dpd-be": "Belgija",
+        "dpd-hr": "Hrvaška",
+        "dpd-cz": "Češka",
+        "dpd-ee": "Estonija",
+        "dpd-fr": "Francija",
+        "dpd-hu": "Madžarska",
+        "brt": "Italija",
+        "dpd-lv": "Latvija",
+        "dpd-lt": "Litva",
+        "dpd-lu": "Luksemburg",
+        "chr-pt": "Portugalska",
+        "dpd-sk": "Slovaška",
+        "dpd-si": "Slovenija"
+      }
+    }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "parcel_registered": "Paket je bil registriran",
+      "parcel_status_changed": "Stanje paketa se je spremenilo",
+      "parcel_delivered": "Paket je bil dostavljen",
+      "parcel_delivery_time_changed": "Pričakovani čas dostave paketa se je spremenil",
+      "outgoing_parcel_status_changed": "Stanje odhodnega paketa se je spremenilo",
+      "outgoing_parcel_delivered": "Odhodni paket je bil dostavljen"
+    }
+  },
+  "entity": {
+    "button": {
+      "refresh": {
+        "name": "Osveži"
+      }
+    },
+    "calendar": {
+      "deliveries": {
+        "name": "Dostave"
+      }
+    },
+    "sensor": {
+      "incoming_parcels": {
+        "name": "Prihajajoči paketi",
+        "unit_of_measurement": "paketov"
+      },
+      "parcel": {
+        "name": "Paket {barcode}"
+      },
+      "outgoing_parcels": {
+        "name": "Odhodni paketi",
+        "unit_of_measurement": "paketov"
+      },
+      "delivered_parcels": {
+        "name": "Dostavljeni paketi",
+        "unit_of_measurement": "paketov"
+      },
+      "outgoing_delivered_parcels": {
+        "name": "Dostavljeni odhodni paketi",
+        "unit_of_measurement": "paketov"
+      },
+      "next_delivery": {
+        "name": "Naslednja dostava"
+      },
+      "en_route_to_parcel_shop": {
+        "name": "Na poti do ParcelShopa",
+        "unit_of_measurement": "paketov"
+      },
+      "awaiting_pickup": {
+        "name": "Pripravljeno za prevzem",
+        "unit_of_measurement": "paketov"
+      },
+      "last_update": {
+        "name": "Zadnja uspešna posodobitev"
+      }
+    }
+  }
+}

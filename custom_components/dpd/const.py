@@ -80,11 +80,38 @@ CONF_BU = "bu"
 
 BUSINESS_UNITS = [
     {"value": "DPD-NL", "label": "Netherlands"},
-    {"value": "DPD-DE", "label": "Germany"},
-    {"value": "DPD-CH", "label": "Switzerland"},
+    {"value": "DPD-AR", "label": "Argentina"},
+    {"value": "DPD-BE", "label": "Belgium"},
+    {"value": "DPD-HR", "label": "Croatia"},
+    {"value": "DPD-CZ", "label": "Czech Republic"},
+    {"value": "DPD-EE", "label": "Estonia"},
+    {"value": "DPD-FR", "label": "France"},
+    {"value": "DPD-HU", "label": "Hungary"},
+    {"value": "BRT", "label": "Italy"},
+    {"value": "DPD-LV", "label": "Latvia"},
+    {"value": "DPD-LT", "label": "Lithuania"},
+    {"value": "DPD-LU", "label": "Luxembourg"},
+    {"value": "CHR-PT", "label": "Portugal"},
+    {"value": "DPD-SK", "label": "Slovakia"},
+    {"value": "DPD-SI", "label": "Slovenia"},
 ]
 
 DEFAULT_BU = "DPD-NL"
+
+# Country segment of the tracking URL is normally derived from the BU
+# (``DPD-DE`` -> ``de``, see `_tracking_url`), but a few acquired brands
+# on the shared myDPD backend don't follow the `DPD-<CC>` shape.
+BU_COUNTRY_OVERRIDES = {
+    "CHR-PT": "pt",
+}
+
+# BUs whose tracking page isn't dpdgroup.com/<country>/mydpd/my-parcels/search
+# at all — confirmed for Italy: BRT keeps its own domain and path entirely
+# (mybrt.it/it/mybrt/my-parcels/incoming), not just a different brand segment
+# under dpdgroup.com (that guess 404s).
+BU_TRACKING_URL_OVERRIDES = {
+    "BRT": "https://www.mybrt.it/it/mybrt/my-parcels/incoming?parcelNumber={parcel_number}",
+}
 
 # Pre-filled "add my country" GitHub issue, linked from the setup form so
 # users can request another DPD business unit. Passed as a description

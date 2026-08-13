@@ -24,6 +24,9 @@ _USER_INPUT = {
     CONF_PASSWORD: "secret",
     CONF_BU: DEFAULT_BU,
 }
+# The BU selector only accepts lower-case option values (hassfest
+# translation-key rule); the stored/internal value stays upper-case.
+_USER_FORM_INPUT = {**_USER_INPUT, CONF_BU: DEFAULT_BU.lower()}
 _DELIVERED_INPUT = {
     CONF_DELIVERED_FILTER_TYPE: "days",
     CONF_DELIVERED_FILTER_AMOUNT: 14,
@@ -44,7 +47,7 @@ async def test_user_flow_creates_entry(hass):
         assert result["step_id"] == "user"
 
         result = await hass.config_entries.flow.async_configure(
-            result["flow_id"], user_input=_USER_INPUT
+            result["flow_id"], user_input=_USER_FORM_INPUT
         )
         assert result["type"] is FlowResultType.FORM
         assert result["step_id"] == "delivered"
@@ -70,7 +73,7 @@ async def test_user_flow_invalid_auth(hass):
             DOMAIN, context={"source": SOURCE_USER}
         )
         result = await hass.config_entries.flow.async_configure(
-            result["flow_id"], user_input=_USER_INPUT
+            result["flow_id"], user_input=_USER_FORM_INPUT
         )
     assert result["type"] is FlowResultType.FORM
     assert result["errors"] == {"base": "invalid_auth"}
@@ -86,7 +89,7 @@ async def test_user_flow_cannot_connect(hass):
             DOMAIN, context={"source": SOURCE_USER}
         )
         result = await hass.config_entries.flow.async_configure(
-            result["flow_id"], user_input=_USER_INPUT
+            result["flow_id"], user_input=_USER_FORM_INPUT
         )
     assert result["type"] is FlowResultType.FORM
     assert result["errors"] == {"base": "cannot_connect"}
@@ -110,7 +113,7 @@ async def test_user_flow_aborts_when_already_configured(hass):
             DOMAIN, context={"source": SOURCE_USER}
         )
         result = await hass.config_entries.flow.async_configure(
-            result["flow_id"], user_input=_USER_INPUT
+            result["flow_id"], user_input=_USER_FORM_INPUT
         )
 
     assert result["type"] is FlowResultType.ABORT

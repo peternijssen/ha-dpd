@@ -1,0 +1,174 @@
+{
+  "title": "DPD",
+  "config": {
+    "step": {
+      "user": {
+        "title": "DPD",
+        "description": "Nevidíte svoju krajinu v zozname? [Vyžiadajte si ju tu]({issue_url}).",
+        "data": {
+          "email": "E-mail",
+          "password": "Heslo",
+          "bu": "Krajina"
+        }
+      },
+      "delivered": {
+        "title": "Doručené zásielky",
+        "data": {
+          "delivered_filter_type": "Filtrovať podľa",
+          "delivered_filter_amount": "Počet"
+        },
+        "data_description": {
+          "delivered_filter_type": "Zobraziť doručené zásielky za posledných X dní, alebo obmedziť na X najnovších.",
+          "delivered_filter_amount": "Počet dní alebo zásielok na zobrazenie."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Znova overiť DPD",
+        "data": {
+          "email": "E-mail",
+          "password": "Heslo"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Nedá sa pripojiť k DPD. Skontrolujte pripojenie k sieti.",
+      "invalid_auth": "Neplatný e-mail alebo heslo."
+    },
+    "abort": {
+      "already_configured": "Tento účet DPD je už nakonfigurovaný.",
+      "reauth_successful": "Opätovné overenie bolo úspešné.",
+      "unique_id_mismatch": "Overte sa znova rovnakým účtom DPD, s ktorým bola táto integrácia nastavená."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Možnosti DPD",
+        "sections": {
+          "delivered": {
+            "name": "Doručené zásielky",
+            "data": {
+              "delivered_filter_type": "Filtrovať podľa",
+              "delivered_filter_amount": "Počet"
+            },
+            "data_description": {
+              "delivered_filter_type": "Zobraziť doručené zásielky za posledných X dní, alebo obmedziť na X najnovších.",
+              "delivered_filter_amount": "Počet dní alebo zásielok na zobrazenie."
+            }
+          },
+          "history": {
+            "name": "História zásielok",
+            "data": {
+              "include_history": "Zahrnúť históriu stavov"
+            },
+            "data_description": {
+              "include_history": "Pridá ku každej zásielke atribút histórie so zoznamom všetkých aktualizácií stavu (časová pečiatka, stav, pôvodný text). V predvolenom nastavení vypnuté."
+            }
+          },
+          "polling": {
+            "name": "Aktualizácia",
+            "data": {
+              "refresh_interval": "Aktualizovať každých"
+            },
+            "data_description": {
+              "refresh_interval": "Ako často integrácia kontroluje aktualizácie zásielok u DPD. Pomalší interval je šetrnejší k API DPD; predvolených 30 minút stačí pre väčšinu zásielok."
+            }
+          }
+        }
+      }
+    }
+  },
+  "selector": {
+    "refresh_interval": {
+      "options": {
+        "15": "15 minút",
+        "30": "30 minút",
+        "60": "60 minút",
+        "120": "120 minút",
+        "240": "240 minút"
+      }
+    },
+    "delivered_filter_type": {
+      "options": {
+        "days": "Dni",
+        "parcels": "Počet zásielok"
+      }
+    },
+    "bu": {
+      "options": {
+        "dpd-nl": "Holandsko",
+        "dpd-ar": "Argentína",
+        "dpd-be": "Belgicko",
+        "dpd-hr": "Chorvátsko",
+        "dpd-cz": "Česko",
+        "dpd-ee": "Estónsko",
+        "dpd-fr": "Francúzsko",
+        "dpd-hu": "Maďarsko",
+        "brt": "Taliansko",
+        "dpd-lv": "Lotyšsko",
+        "dpd-lt": "Litva",
+        "dpd-lu": "Luxembursko",
+        "chr-pt": "Portugalsko",
+        "dpd-sk": "Slovensko",
+        "dpd-si": "Slovinsko"
+      }
+    }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "parcel_registered": "Zásielka bola zaregistrovaná",
+      "parcel_status_changed": "Stav zásielky sa zmenil",
+      "parcel_delivered": "Zásielka bola doručená",
+      "parcel_delivery_time_changed": "Očakávaný čas doručenia zásielky sa zmenil",
+      "outgoing_parcel_status_changed": "Stav odchádzajúcej zásielky sa zmenil",
+      "outgoing_parcel_delivered": "Odchádzajúca zásielka bola doručená"
+    }
+  },
+  "entity": {
+    "button": {
+      "refresh": {
+        "name": "Aktualizovať"
+      }
+    },
+    "calendar": {
+      "deliveries": {
+        "name": "Doručenia"
+      }
+    },
+    "sensor": {
+      "incoming_parcels": {
+        "name": "Prichádzajúce zásielky",
+        "unit_of_measurement": "zásielok"
+      },
+      "parcel": {
+        "name": "Zásielka {barcode}"
+      },
+      "outgoing_parcels": {
+        "name": "Odchádzajúce zásielky",
+        "unit_of_measurement": "zásielok"
+      },
+      "delivered_parcels": {
+        "name": "Doručené zásielky",
+        "unit_of_measurement": "zásielok"
+      },
+      "outgoing_delivered_parcels": {
+        "name": "Doručené odchádzajúce zásielky",
+        "unit_of_measurement": "zásielok"
+      },
+      "next_delivery": {
+        "name": "Ďalšie doručenie"
+      },
+      "en_route_to_parcel_shop": {
+        "name": "Na ceste do ParcelShopu",
+        "unit_of_measurement": "zásielok"
+      },
+      "awaiting_pickup": {
+        "name": "Pripravené na vyzdvihnutie",
+        "unit_of_measurement": "zásielok"
+      },
+      "last_update": {
+        "name": "Posledná úspešná aktualizácia"
+      }
+    }
+  }
+}

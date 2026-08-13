@@ -611,6 +611,16 @@ def test_tracking_url_uses_bu_country_segment():
     )
 
 
+def test_tracking_url_uses_override_for_non_dpd_prefixed_brands():
+    """BRT (Italy) is a wholly separate domain; CHR-PT (Portugal) keeps mydpd."""
+    assert _tracking_url({"parcelNumber": "01ABC"}, "BRT") == (
+        "https://www.mybrt.it/it/mybrt/my-parcels/incoming?parcelNumber=01ABC"
+    )
+    assert _tracking_url({"parcelNumber": "01ABC"}, "CHR-PT") == (
+        "https://www.dpdgroup.com/pt/mydpd/my-parcels/search?parcelNumber=01ABC"
+    )
+
+
 def test_tracking_url_returns_none_without_parcel_number():
     assert _tracking_url({}) is None
     assert _tracking_url({"parcelNumber": ""}) is None

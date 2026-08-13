@@ -1,0 +1,174 @@
+{
+  "title": "DPD",
+  "config": {
+    "step": {
+      "user": {
+        "title": "DPD",
+        "description": "Vai jūsu valsts nav sarakstā? [Pieprasiet to šeit]({issue_url}).",
+        "data": {
+          "email": "E-pasts",
+          "password": "Parole",
+          "bu": "Valsts"
+        }
+      },
+      "delivered": {
+        "title": "Piegādātās pakas",
+        "data": {
+          "delivered_filter_type": "Filtrēt pēc",
+          "delivered_filter_amount": "Skaits"
+        },
+        "data_description": {
+          "delivered_filter_type": "Rādīt piegādātās pakas no pēdējām X dienām vai ierobežot līdz X jaunākajām.",
+          "delivered_filter_amount": "Rādāmo dienu vai paku skaits."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Atkārtoti autentificēt DPD",
+        "data": {
+          "email": "E-pasts",
+          "password": "Parole"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Nevar sasniegt DPD. Pārbaudiet tīkla savienojumu.",
+      "invalid_auth": "Nederīgs e-pasts vai parole."
+    },
+    "abort": {
+      "already_configured": "Šis DPD konts jau ir konfigurēts.",
+      "reauth_successful": "Atkārtota autentifikācija veiksmīga.",
+      "unique_id_mismatch": "Autentificējieties atkārtoti ar to pašu DPD kontu, ar kuru šī integrācija tika iestatīta."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "DPD opcijas",
+        "sections": {
+          "delivered": {
+            "name": "Piegādātās pakas",
+            "data": {
+              "delivered_filter_type": "Filtrēt pēc",
+              "delivered_filter_amount": "Skaits"
+            },
+            "data_description": {
+              "delivered_filter_type": "Rādīt piegādātās pakas no pēdējām X dienām vai ierobežot līdz X jaunākajām.",
+              "delivered_filter_amount": "Rādāmo dienu vai paku skaits."
+            }
+          },
+          "history": {
+            "name": "Paku vēsture",
+            "data": {
+              "include_history": "Iekļaut statusu vēsturi"
+            },
+            "data_description": {
+              "include_history": "Pievieno katrai pakai vēstures atribūtu, kas uzskaita katru statusa atjauninājumu (laika zīmogs, statuss, oriģinālais teksts). Pēc noklusējuma izslēgts."
+            }
+          },
+          "polling": {
+            "name": "Atjaunināšana",
+            "data": {
+              "refresh_interval": "Atjaunināt ik pēc"
+            },
+            "data_description": {
+              "refresh_interval": "Cik bieži integrācija pārbauda DPD paku atjauninājumus. Lēnāks intervāls ir saudzīgāks pret DPD API; noklusējuma 30 minūtes pietiek lielākajai daļai paku."
+            }
+          }
+        }
+      }
+    }
+  },
+  "selector": {
+    "refresh_interval": {
+      "options": {
+        "15": "15 minūtes",
+        "30": "30 minūtes",
+        "60": "60 minūtes",
+        "120": "120 minūtes",
+        "240": "240 minūtes"
+      }
+    },
+    "delivered_filter_type": {
+      "options": {
+        "days": "Dienas",
+        "parcels": "Paku skaits"
+      }
+    },
+    "bu": {
+      "options": {
+        "dpd-nl": "Nīderlande",
+        "dpd-ar": "Argentīna",
+        "dpd-be": "Beļģija",
+        "dpd-hr": "Horvātija",
+        "dpd-cz": "Čehija",
+        "dpd-ee": "Igaunija",
+        "dpd-fr": "Francija",
+        "dpd-hu": "Ungārija",
+        "brt": "Itālija",
+        "dpd-lv": "Latvija",
+        "dpd-lt": "Lietuva",
+        "dpd-lu": "Luksemburga",
+        "chr-pt": "Portugāle",
+        "dpd-sk": "Slovākija",
+        "dpd-si": "Slovēnija"
+      }
+    }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "parcel_registered": "Paka tika reģistrēta",
+      "parcel_status_changed": "Pakas statuss ir mainījies",
+      "parcel_delivered": "Paka tika piegādāta",
+      "parcel_delivery_time_changed": "Pakas paredzamais piegādes laiks ir mainījies",
+      "outgoing_parcel_status_changed": "Izejošās pakas statuss ir mainījies",
+      "outgoing_parcel_delivered": "Izejošā paka tika piegādāta"
+    }
+  },
+  "entity": {
+    "button": {
+      "refresh": {
+        "name": "Atjaunināt"
+      }
+    },
+    "calendar": {
+      "deliveries": {
+        "name": "Piegādes"
+      }
+    },
+    "sensor": {
+      "incoming_parcels": {
+        "name": "Ienākošās pakas",
+        "unit_of_measurement": "pakas"
+      },
+      "parcel": {
+        "name": "Paka {barcode}"
+      },
+      "outgoing_parcels": {
+        "name": "Izejošās pakas",
+        "unit_of_measurement": "pakas"
+      },
+      "delivered_parcels": {
+        "name": "Piegādātās pakas",
+        "unit_of_measurement": "pakas"
+      },
+      "outgoing_delivered_parcels": {
+        "name": "Piegādātās izejošās pakas",
+        "unit_of_measurement": "pakas"
+      },
+      "next_delivery": {
+        "name": "Nākamā piegāde"
+      },
+      "en_route_to_parcel_shop": {
+        "name": "Ceļā uz ParcelShop",
+        "unit_of_measurement": "pakas"
+      },
+      "awaiting_pickup": {
+        "name": "Gatavs saņemšanai",
+        "unit_of_measurement": "pakas"
+      },
+      "last_update": {
+        "name": "Pēdējā veiksmīgā atjaunināšana"
+      }
+    }
+  }
+}

@@ -1,0 +1,174 @@
+{
+  "title": "DPD",
+  "config": {
+    "step": {
+      "user": {
+        "title": "DPD",
+        "description": "Kas teie riiki nimekirjas pole? [Küsige seda siin]({issue_url}).",
+        "data": {
+          "email": "E-post",
+          "password": "Parool",
+          "bu": "Riik"
+        }
+      },
+      "delivered": {
+        "title": "Kohale toimetatud pakid",
+        "data": {
+          "delivered_filter_type": "Filtreeri",
+          "delivered_filter_amount": "Kogus"
+        },
+        "data_description": {
+          "delivered_filter_type": "Kuva viimase X päeva jooksul kohale toimetatud pakid või piira X uusimaga.",
+          "delivered_filter_amount": "Kuvatavate päevade või pakkide arv."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Autendi DPD uuesti",
+        "data": {
+          "email": "E-post",
+          "password": "Parool"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "DPD-ga ei saa ühendust. Kontrolli võrguühendust.",
+      "invalid_auth": "Vale e-post või parool."
+    },
+    "abort": {
+      "already_configured": "See DPD konto on juba seadistatud.",
+      "reauth_successful": "Taasautentimine õnnestus.",
+      "unique_id_mismatch": "Autendi uuesti sama DPD kontoga, millega see sidumine algselt seadistati."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "DPD seaded",
+        "sections": {
+          "delivered": {
+            "name": "Kohale toimetatud pakid",
+            "data": {
+              "delivered_filter_type": "Filtreeri",
+              "delivered_filter_amount": "Kogus"
+            },
+            "data_description": {
+              "delivered_filter_type": "Kuva viimase X päeva jooksul kohale toimetatud pakid või piira X uusimaga.",
+              "delivered_filter_amount": "Kuvatavate päevade või pakkide arv."
+            }
+          },
+          "history": {
+            "name": "Pakkide ajalugu",
+            "data": {
+              "include_history": "Kaasa staatuste ajalugu"
+            },
+            "data_description": {
+              "include_history": "Lisab igale pakile ajaloo atribuudi, mis loetleb iga staatuse muutuse (ajatempel, staatus, algne tekst). Vaikimisi väljas."
+            }
+          },
+          "polling": {
+            "name": "Värskendamine",
+            "data": {
+              "refresh_interval": "Värskenda iga"
+            },
+            "data_description": {
+              "refresh_interval": "Kui tihti sidumine kontrollib DPD-lt pakkide uuendusi. Aeglasem intervall on DPD API-le leebem; vaikimisi 30 minutit sobib enamikule pakkidele."
+            }
+          }
+        }
+      }
+    }
+  },
+  "selector": {
+    "refresh_interval": {
+      "options": {
+        "15": "15 minutit",
+        "30": "30 minutit",
+        "60": "60 minutit",
+        "120": "120 minutit",
+        "240": "240 minutit"
+      }
+    },
+    "delivered_filter_type": {
+      "options": {
+        "days": "Päevad",
+        "parcels": "Pakkide arv"
+      }
+    },
+    "bu": {
+      "options": {
+        "dpd-nl": "Holland",
+        "dpd-ar": "Argentina",
+        "dpd-be": "Belgia",
+        "dpd-hr": "Horvaatia",
+        "dpd-cz": "Tšehhi",
+        "dpd-ee": "Eesti",
+        "dpd-fr": "Prantsusmaa",
+        "dpd-hu": "Ungari",
+        "brt": "Itaalia",
+        "dpd-lv": "Läti",
+        "dpd-lt": "Leedu",
+        "dpd-lu": "Luksemburg",
+        "chr-pt": "Portugal",
+        "dpd-sk": "Slovakkia",
+        "dpd-si": "Sloveenia"
+      }
+    }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "parcel_registered": "Pakk registreeriti",
+      "parcel_status_changed": "Paki staatus muutus",
+      "parcel_delivered": "Pakk toimetati kohale",
+      "parcel_delivery_time_changed": "Paki oodatav tarneaeg muutus",
+      "outgoing_parcel_status_changed": "Väljuva paki staatus muutus",
+      "outgoing_parcel_delivered": "Väljuv pakk toimetati kohale"
+    }
+  },
+  "entity": {
+    "button": {
+      "refresh": {
+        "name": "Värskenda"
+      }
+    },
+    "calendar": {
+      "deliveries": {
+        "name": "Tarned"
+      }
+    },
+    "sensor": {
+      "incoming_parcels": {
+        "name": "Saabuvad pakid",
+        "unit_of_measurement": "pakki"
+      },
+      "parcel": {
+        "name": "Pakk {barcode}"
+      },
+      "outgoing_parcels": {
+        "name": "Väljuvad pakid",
+        "unit_of_measurement": "pakki"
+      },
+      "delivered_parcels": {
+        "name": "Kohale toimetatud pakid",
+        "unit_of_measurement": "pakki"
+      },
+      "outgoing_delivered_parcels": {
+        "name": "Kohale toimetatud väljuvad pakid",
+        "unit_of_measurement": "pakki"
+      },
+      "next_delivery": {
+        "name": "Järgmine tarne"
+      },
+      "en_route_to_parcel_shop": {
+        "name": "Teel ParcelShopi",
+        "unit_of_measurement": "pakki"
+      },
+      "awaiting_pickup": {
+        "name": "Väljastuspunktis ootamas",
+        "unit_of_measurement": "pakki"
+      },
+      "last_update": {
+        "name": "Viimane õnnestunud värskendus"
+      }
+    }
+  }
+}

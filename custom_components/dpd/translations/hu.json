@@ -1,0 +1,174 @@
+{
+  "title": "DPD",
+  "config": {
+    "step": {
+      "user": {
+        "title": "DPD",
+        "description": "Nincs ott az országod? [Kérd itt]({issue_url}).",
+        "data": {
+          "email": "E-mail",
+          "password": "Jelszó",
+          "bu": "Ország"
+        }
+      },
+      "delivered": {
+        "title": "Kézbesített csomagok",
+        "data": {
+          "delivered_filter_type": "Szűrés",
+          "delivered_filter_amount": "Mennyiség"
+        },
+        "data_description": {
+          "delivered_filter_type": "Az elmúlt X nap kézbesített csomagjainak megjelenítése, vagy korlátozás a legutóbbi X darabra.",
+          "delivered_filter_amount": "A megjelenítendő napok vagy csomagok száma."
+        }
+      },
+      "reauth_confirm": {
+        "title": "DPD újbóli hitelesítése",
+        "data": {
+          "email": "E-mail",
+          "password": "Jelszó"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "A DPD nem érhető el. Ellenőrizd a hálózati kapcsolatot.",
+      "invalid_auth": "Érvénytelen e-mail cím vagy jelszó."
+    },
+    "abort": {
+      "already_configured": "Ez a DPD fiók már be van állítva.",
+      "reauth_successful": "Sikeres újbóli hitelesítés.",
+      "unique_id_mismatch": "Hitelesítsd magad újra ugyanazzal a DPD-fiókkal, amellyel ezt az integrációt beállították."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "DPD beállítások",
+        "sections": {
+          "delivered": {
+            "name": "Kézbesített csomagok",
+            "data": {
+              "delivered_filter_type": "Szűrés",
+              "delivered_filter_amount": "Mennyiség"
+            },
+            "data_description": {
+              "delivered_filter_type": "Az elmúlt X nap kézbesített csomagjainak megjelenítése, vagy korlátozás a legutóbbi X darabra.",
+              "delivered_filter_amount": "A megjelenítendő napok vagy csomagok száma."
+            }
+          },
+          "history": {
+            "name": "Csomagelőzmények",
+            "data": {
+              "include_history": "Állapotelőzmények megjelenítése"
+            },
+            "data_description": {
+              "include_history": "Minden csomaghoz hozzáad egy előzmény attribútumot, amely felsorolja az egyes állapotfrissítéseket (időbélyeg, állapot, eredeti szöveg). Alapértelmezés szerint kikapcsolva."
+            }
+          },
+          "polling": {
+            "name": "Frissítés",
+            "data": {
+              "refresh_interval": "Frissítés gyakorisága"
+            },
+            "data_description": {
+              "refresh_interval": "Milyen gyakran ellenőrzi az integráció a DPD-nél a csomagfrissítéseket. A lassabb időköz kíméletesebb a DPD API-jával szemben; az alapértelmezett 30 perc a legtöbb csomaghoz elegendő."
+            }
+          }
+        }
+      }
+    }
+  },
+  "selector": {
+    "refresh_interval": {
+      "options": {
+        "15": "15 perc",
+        "30": "30 perc",
+        "60": "60 perc",
+        "120": "120 perc",
+        "240": "240 perc"
+      }
+    },
+    "delivered_filter_type": {
+      "options": {
+        "days": "Nap",
+        "parcels": "Csomagok száma"
+      }
+    },
+    "bu": {
+      "options": {
+        "dpd-nl": "Hollandia",
+        "dpd-ar": "Argentína",
+        "dpd-be": "Belgium",
+        "dpd-hr": "Horvátország",
+        "dpd-cz": "Csehország",
+        "dpd-ee": "Észtország",
+        "dpd-fr": "Franciaország",
+        "dpd-hu": "Magyarország",
+        "brt": "Olaszország",
+        "dpd-lv": "Lettország",
+        "dpd-lt": "Litvánia",
+        "dpd-lu": "Luxemburg",
+        "chr-pt": "Portugália",
+        "dpd-sk": "Szlovákia",
+        "dpd-si": "Szlovénia"
+      }
+    }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "parcel_registered": "Egy csomagot regisztráltak",
+      "parcel_status_changed": "Egy csomag állapota megváltozott",
+      "parcel_delivered": "Egy csomagot kézbesítettek",
+      "parcel_delivery_time_changed": "Egy csomag várható kézbesítési ideje megváltozott",
+      "outgoing_parcel_status_changed": "Egy kimenő csomag állapota megváltozott",
+      "outgoing_parcel_delivered": "Egy kimenő csomagot kézbesítettek"
+    }
+  },
+  "entity": {
+    "button": {
+      "refresh": {
+        "name": "Frissítés"
+      }
+    },
+    "calendar": {
+      "deliveries": {
+        "name": "Kézbesítések"
+      }
+    },
+    "sensor": {
+      "incoming_parcels": {
+        "name": "Bejövő csomagok",
+        "unit_of_measurement": "csomag"
+      },
+      "parcel": {
+        "name": "Csomag {barcode}"
+      },
+      "outgoing_parcels": {
+        "name": "Kimenő csomagok",
+        "unit_of_measurement": "csomag"
+      },
+      "delivered_parcels": {
+        "name": "Kézbesített csomagok",
+        "unit_of_measurement": "csomag"
+      },
+      "outgoing_delivered_parcels": {
+        "name": "Kézbesített kimenő csomagok",
+        "unit_of_measurement": "csomag"
+      },
+      "next_delivery": {
+        "name": "Következő kézbesítés"
+      },
+      "en_route_to_parcel_shop": {
+        "name": "Úton a ParcelShophoz",
+        "unit_of_measurement": "csomag"
+      },
+      "awaiting_pickup": {
+        "name": "Átvételre kész",
+        "unit_of_measurement": "csomag"
+      },
+      "last_update": {
+        "name": "Utolsó sikeres frissítés"
+      }
+    }
+  }
+}

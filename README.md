@@ -35,7 +35,8 @@ A custom Home Assistant integration that tracks your DPD shipments.
 - Configurable delivered-parcels sensor (last N days, or N most recent)
 - Automatic lifecycle management — per-parcel sensors are created and removed as parcels move through delivery
 - Re-authentication support
-- Country (business unit) selection during setup — Netherlands, Germany and Switzerland available today, more to come
+- Country (business unit) selection during setup — Netherlands plus 14 other countries on DPD's shared myDPD backend (Argentina, Belgium, Croatia, Czech Republic, Estonia, France, Hungary, Italy, Latvia, Lithuania, Luxembourg, Portugal, Slovakia, Slovenia), more to come
+- UI translated into the language of every supported country (plus English), including the country dropdown itself
 
 ## Requirements
 
@@ -74,7 +75,7 @@ Or click the button below to open it directly in HACS:
 |---|---|
 | Email | The email address of your DPD consumer account (the one you use in the myDPD mobile app). |
 | Password | The password for that account. Stored in the HA config entry and refreshed automatically when the integration triggers a re-authentication. |
-| Country | The DPD business unit to query: **Netherlands** (`DPD-NL`), **Germany** (`DPD-DE`) or **Switzerland** (`DPD-CH`). Germany and Switzerland are new and not yet confirmed against real account data — if a parcel's status ever looks wrong, please [report it](https://github.com/ha-parcel-integrations/ha-dpd/issues/new?template=unrecognised_status.yml). More countries land once contributors share parcel-payload samples. |
+| Country | The DPD business unit to query. Netherlands is wire-confirmed; the other 14 (Argentina, Belgium, Croatia, Czech Republic, Estonia, France, Hungary, Italy, Latvia, Lithuania, Luxembourg, Portugal, Slovakia, Slovenia) are confirmed to share the same myDPD account backend and auth flow, but a non-NL parcel payload hasn't been captured yet — if a parcel's status ever looks wrong, please [report it](https://github.com/ha-parcel-integrations/ha-dpd/issues/new?template=unrecognised_status.yml). Germany, the UK, Poland, Switzerland and Brazil each run their own separate stack and aren't supported here yet — [request one](https://github.com/ha-parcel-integrations/ha-dpd/issues/new?title=Add%20country%3A%20%3Cyour%20country%3E&labels=enhancement) if you need it. |
 
 ## Options
 

@@ -1,0 +1,174 @@
+{
+  "title": "DPD",
+  "config": {
+    "step": {
+      "user": {
+        "title": "DPD",
+        "description": "¿No aparece tu país? [Solicítalo aquí]({issue_url}).",
+        "data": {
+          "email": "Correo electrónico",
+          "password": "Contraseña",
+          "bu": "País"
+        }
+      },
+      "delivered": {
+        "title": "Paquetes entregados",
+        "data": {
+          "delivered_filter_type": "Filtrar por",
+          "delivered_filter_amount": "Cantidad"
+        },
+        "data_description": {
+          "delivered_filter_type": "Muestra los paquetes entregados de los últimos X días, o limita a los X más recientes.",
+          "delivered_filter_amount": "Número de días o paquetes a mostrar."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Volver a autenticar DPD",
+        "data": {
+          "email": "Correo electrónico",
+          "password": "Contraseña"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "No se puede conectar con DPD. Comprueba tu conexión de red.",
+      "invalid_auth": "Correo electrónico o contraseña no válidos."
+    },
+    "abort": {
+      "already_configured": "Esta cuenta de DPD ya está configurada.",
+      "reauth_successful": "Autenticación correcta.",
+      "unique_id_mismatch": "Vuelve a autenticarte con la misma cuenta de DPD con la que se configuró esta integración."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Opciones de DPD",
+        "sections": {
+          "delivered": {
+            "name": "Paquetes entregados",
+            "data": {
+              "delivered_filter_type": "Filtrar por",
+              "delivered_filter_amount": "Cantidad"
+            },
+            "data_description": {
+              "delivered_filter_type": "Muestra los paquetes entregados de los últimos X días, o limita a los X más recientes.",
+              "delivered_filter_amount": "Número de días o paquetes a mostrar."
+            }
+          },
+          "history": {
+            "name": "Historial de paquetes",
+            "data": {
+              "include_history": "Incluir historial de estados"
+            },
+            "data_description": {
+              "include_history": "Añade un atributo de historial por paquete con cada actualización de estado (fecha y hora, estado, texto original). Desactivado por defecto."
+            }
+          },
+          "polling": {
+            "name": "Actualización",
+            "data": {
+              "refresh_interval": "Actualizar cada"
+            },
+            "data_description": {
+              "refresh_interval": "Con qué frecuencia la integración consulta a DPD las actualizaciones de los paquetes. Un intervalo más lento es más suave para la API de DPD; el valor predeterminado de 30 minutos es suficiente para la mayoría de los paquetes."
+            }
+          }
+        }
+      }
+    }
+  },
+  "selector": {
+    "refresh_interval": {
+      "options": {
+        "15": "15 minutos",
+        "30": "30 minutos",
+        "60": "60 minutos",
+        "120": "120 minutos",
+        "240": "240 minutos"
+      }
+    },
+    "delivered_filter_type": {
+      "options": {
+        "days": "Días",
+        "parcels": "Número de paquetes"
+      }
+    },
+    "bu": {
+      "options": {
+        "dpd-nl": "Países Bajos",
+        "dpd-ar": "Argentina",
+        "dpd-be": "Bélgica",
+        "dpd-hr": "Croacia",
+        "dpd-cz": "República Checa",
+        "dpd-ee": "Estonia",
+        "dpd-fr": "Francia",
+        "dpd-hu": "Hungría",
+        "brt": "Italia",
+        "dpd-lv": "Letonia",
+        "dpd-lt": "Lituania",
+        "dpd-lu": "Luxemburgo",
+        "chr-pt": "Portugal",
+        "dpd-sk": "Eslovaquia",
+        "dpd-si": "Eslovenia"
+      }
+    }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "parcel_registered": "Se ha registrado un paquete",
+      "parcel_status_changed": "El estado de un paquete ha cambiado",
+      "parcel_delivered": "Se ha entregado un paquete",
+      "parcel_delivery_time_changed": "La hora de entrega prevista de un paquete ha cambiado",
+      "outgoing_parcel_status_changed": "El estado de un paquete saliente ha cambiado",
+      "outgoing_parcel_delivered": "Se ha entregado un paquete saliente"
+    }
+  },
+  "entity": {
+    "button": {
+      "refresh": {
+        "name": "Actualizar"
+      }
+    },
+    "calendar": {
+      "deliveries": {
+        "name": "Entregas"
+      }
+    },
+    "sensor": {
+      "incoming_parcels": {
+        "name": "Paquetes entrantes",
+        "unit_of_measurement": "paquetes"
+      },
+      "parcel": {
+        "name": "Paquete {barcode}"
+      },
+      "outgoing_parcels": {
+        "name": "Paquetes salientes",
+        "unit_of_measurement": "paquetes"
+      },
+      "delivered_parcels": {
+        "name": "Paquetes entregados",
+        "unit_of_measurement": "paquetes"
+      },
+      "outgoing_delivered_parcels": {
+        "name": "Paquetes salientes entregados",
+        "unit_of_measurement": "paquetes"
+      },
+      "next_delivery": {
+        "name": "Próxima entrega"
+      },
+      "en_route_to_parcel_shop": {
+        "name": "En camino a ParcelShop",
+        "unit_of_measurement": "paquetes"
+      },
+      "awaiting_pickup": {
+        "name": "Listo para recoger",
+        "unit_of_measurement": "paquetes"
+      },
+      "last_update": {
+        "name": "Última actualización correcta"
+      }
+    }
+  }
+}

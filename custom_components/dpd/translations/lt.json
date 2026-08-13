@@ -1,0 +1,174 @@
+{
+  "title": "DPD",
+  "config": {
+    "step": {
+      "user": {
+        "title": "DPD",
+        "description": "Nematote savo šalies sąraše? [Paprašykite čia]({issue_url}).",
+        "data": {
+          "email": "El. paštas",
+          "password": "Slaptažodis",
+          "bu": "Šalis"
+        }
+      },
+      "delivered": {
+        "title": "Pristatytos siuntos",
+        "data": {
+          "delivered_filter_type": "Filtruoti pagal",
+          "delivered_filter_amount": "Kiekis"
+        },
+        "data_description": {
+          "delivered_filter_type": "Rodyti pristatytas siuntas per pastarąsias X dienas arba apriboti iki X naujausių.",
+          "delivered_filter_amount": "Rodomų dienų arba siuntų skaičius."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Iš naujo autentifikuoti DPD",
+        "data": {
+          "email": "El. paštas",
+          "password": "Slaptažodis"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Nepavyksta pasiekti DPD. Patikrinkite tinklo ryšį.",
+      "invalid_auth": "Neteisingas el. paštas arba slaptažodis."
+    },
+    "abort": {
+      "already_configured": "Ši DPD paskyra jau sukonfigūruota.",
+      "reauth_successful": "Pakartotinė autentifikacija sėkminga.",
+      "unique_id_mismatch": "Autentifikuokitės iš naujo su ta pačia DPD paskyra, su kuria buvo nustatyta ši integracija."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "DPD parinktys",
+        "sections": {
+          "delivered": {
+            "name": "Pristatytos siuntos",
+            "data": {
+              "delivered_filter_type": "Filtruoti pagal",
+              "delivered_filter_amount": "Kiekis"
+            },
+            "data_description": {
+              "delivered_filter_type": "Rodyti pristatytas siuntas per pastarąsias X dienas arba apriboti iki X naujausių.",
+              "delivered_filter_amount": "Rodomų dienų arba siuntų skaičius."
+            }
+          },
+          "history": {
+            "name": "Siuntų istorija",
+            "data": {
+              "include_history": "Įtraukti būsenų istoriją"
+            },
+            "data_description": {
+              "include_history": "Prideda kiekvienai siuntai istorijos atributą, kuriame išvardijamas kiekvienas būsenos atnaujinimas (laiko žyma, būsena, originalus tekstas). Pagal numatytuosius nustatymus išjungta."
+            }
+          },
+          "polling": {
+            "name": "Atnaujinimas",
+            "data": {
+              "refresh_interval": "Atnaujinti kas"
+            },
+            "data_description": {
+              "refresh_interval": "Kaip dažnai integracija tikrina DPD siuntų atnaujinimus. Lėtesnis intervalas švelnesnis DPD API; numatytosios 30 minučių pakanka daugumai siuntų."
+            }
+          }
+        }
+      }
+    }
+  },
+  "selector": {
+    "refresh_interval": {
+      "options": {
+        "15": "15 minučių",
+        "30": "30 minučių",
+        "60": "60 minučių",
+        "120": "120 minučių",
+        "240": "240 minučių"
+      }
+    },
+    "delivered_filter_type": {
+      "options": {
+        "days": "Dienos",
+        "parcels": "Siuntų skaičius"
+      }
+    },
+    "bu": {
+      "options": {
+        "dpd-nl": "Nyderlandai",
+        "dpd-ar": "Argentina",
+        "dpd-be": "Belgija",
+        "dpd-hr": "Kroatija",
+        "dpd-cz": "Čekija",
+        "dpd-ee": "Estija",
+        "dpd-fr": "Prancūzija",
+        "dpd-hu": "Vengrija",
+        "brt": "Italija",
+        "dpd-lv": "Latvija",
+        "dpd-lt": "Lietuva",
+        "dpd-lu": "Liuksemburgas",
+        "chr-pt": "Portugalija",
+        "dpd-sk": "Slovakija",
+        "dpd-si": "Slovėnija"
+      }
+    }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "parcel_registered": "Siunta buvo užregistruota",
+      "parcel_status_changed": "Siuntos būsena pasikeitė",
+      "parcel_delivered": "Siunta buvo pristatyta",
+      "parcel_delivery_time_changed": "Numatomas siuntos pristatymo laikas pasikeitė",
+      "outgoing_parcel_status_changed": "Išsiunčiamos siuntos būsena pasikeitė",
+      "outgoing_parcel_delivered": "Išsiunčiama siunta buvo pristatyta"
+    }
+  },
+  "entity": {
+    "button": {
+      "refresh": {
+        "name": "Atnaujinti"
+      }
+    },
+    "calendar": {
+      "deliveries": {
+        "name": "Pristatymai"
+      }
+    },
+    "sensor": {
+      "incoming_parcels": {
+        "name": "Gaunamos siuntos",
+        "unit_of_measurement": "siuntos"
+      },
+      "parcel": {
+        "name": "Siunta {barcode}"
+      },
+      "outgoing_parcels": {
+        "name": "Išsiunčiamos siuntos",
+        "unit_of_measurement": "siuntos"
+      },
+      "delivered_parcels": {
+        "name": "Pristatytos siuntos",
+        "unit_of_measurement": "siuntos"
+      },
+      "outgoing_delivered_parcels": {
+        "name": "Pristatytos išsiunčiamos siuntos",
+        "unit_of_measurement": "siuntos"
+      },
+      "next_delivery": {
+        "name": "Kitas pristatymas"
+      },
+      "en_route_to_parcel_shop": {
+        "name": "Pakeliui į ParcelShop",
+        "unit_of_measurement": "siuntos"
+      },
+      "awaiting_pickup": {
+        "name": "Paruošta atsiimti",
+        "unit_of_measurement": "siuntos"
+      },
+      "last_update": {
+        "name": "Paskutinis sėkmingas atnaujinimas"
+      }
+    }
+  }
+}

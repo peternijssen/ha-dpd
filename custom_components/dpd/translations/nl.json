@@ -93,6 +93,25 @@
         "days": "Dagen",
         "parcels": "Aantal pakketten"
       }
+    },
+    "bu": {
+      "options": {
+        "dpd-nl": "Nederland",
+        "dpd-ar": "Argentinië",
+        "dpd-be": "België",
+        "dpd-hr": "Kroatië",
+        "dpd-cz": "Tsjechië",
+        "dpd-ee": "Estland",
+        "dpd-fr": "Frankrijk",
+        "dpd-hu": "Hongarije",
+        "brt": "Italië",
+        "dpd-lv": "Letland",
+        "dpd-lt": "Litouwen",
+        "dpd-lu": "Luxemburg",
+        "chr-pt": "Portugal",
+        "dpd-sk": "Slowakije",
+        "dpd-si": "Slovenië"
+      }
     }
   },
   "device_automation": {

@@ -1,0 +1,174 @@
+{
+  "title": "DPD",
+  "config": {
+    "step": {
+      "user": {
+        "title": "DPD",
+        "description": "Votre pays n'apparaît pas ? [Demandez-le ici]({issue_url}).",
+        "data": {
+          "email": "E-mail",
+          "password": "Mot de passe",
+          "bu": "Pays"
+        }
+      },
+      "delivered": {
+        "title": "Colis livrés",
+        "data": {
+          "delivered_filter_type": "Filtrer par",
+          "delivered_filter_amount": "Quantité"
+        },
+        "data_description": {
+          "delivered_filter_type": "Afficher les colis livrés des X derniers jours, ou se limiter aux X plus récents.",
+          "delivered_filter_amount": "Nombre de jours ou de colis à afficher."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Réauthentifier DPD",
+        "data": {
+          "email": "E-mail",
+          "password": "Mot de passe"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Impossible de joindre DPD. Vérifiez votre connexion réseau.",
+      "invalid_auth": "E-mail ou mot de passe invalide."
+    },
+    "abort": {
+      "already_configured": "Ce compte DPD est déjà configuré.",
+      "reauth_successful": "Réauthentification réussie.",
+      "unique_id_mismatch": "Réauthentifiez-vous avec le même compte DPD que celui utilisé lors de la configuration de cette intégration."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Options DPD",
+        "sections": {
+          "delivered": {
+            "name": "Colis livrés",
+            "data": {
+              "delivered_filter_type": "Filtrer par",
+              "delivered_filter_amount": "Quantité"
+            },
+            "data_description": {
+              "delivered_filter_type": "Afficher les colis livrés des X derniers jours, ou se limiter aux X plus récents.",
+              "delivered_filter_amount": "Nombre de jours ou de colis à afficher."
+            }
+          },
+          "history": {
+            "name": "Historique des colis",
+            "data": {
+              "include_history": "Inclure l'historique des statuts"
+            },
+            "data_description": {
+              "include_history": "Ajoute un attribut d'historique par colis listant chaque mise à jour de statut (horodatage, statut, texte d'origine). Désactivé par défaut."
+            }
+          },
+          "polling": {
+            "name": "Actualisation",
+            "data": {
+              "refresh_interval": "Actualiser toutes les"
+            },
+            "data_description": {
+              "refresh_interval": "Fréquence à laquelle l'intégration interroge DPD pour les mises à jour des colis. Un intervalle plus lent est plus doux pour l'API de DPD ; la valeur par défaut de 30 minutes suffit pour la plupart des colis."
+            }
+          }
+        }
+      }
+    }
+  },
+  "selector": {
+    "refresh_interval": {
+      "options": {
+        "15": "15 minutes",
+        "30": "30 minutes",
+        "60": "60 minutes",
+        "120": "120 minutes",
+        "240": "240 minutes"
+      }
+    },
+    "delivered_filter_type": {
+      "options": {
+        "days": "Jours",
+        "parcels": "Nombre de colis"
+      }
+    },
+    "bu": {
+      "options": {
+        "dpd-nl": "Pays-Bas",
+        "dpd-ar": "Argentine",
+        "dpd-be": "Belgique",
+        "dpd-hr": "Croatie",
+        "dpd-cz": "République tchèque",
+        "dpd-ee": "Estonie",
+        "dpd-fr": "France",
+        "dpd-hu": "Hongrie",
+        "brt": "Italie",
+        "dpd-lv": "Lettonie",
+        "dpd-lt": "Lituanie",
+        "dpd-lu": "Luxembourg",
+        "chr-pt": "Portugal",
+        "dpd-sk": "Slovaquie",
+        "dpd-si": "Slovénie"
+      }
+    }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "parcel_registered": "Un colis a été enregistré",
+      "parcel_status_changed": "Le statut d'un colis a changé",
+      "parcel_delivered": "Un colis a été livré",
+      "parcel_delivery_time_changed": "L'heure de livraison prévue d'un colis a changé",
+      "outgoing_parcel_status_changed": "Le statut d'un colis sortant a changé",
+      "outgoing_parcel_delivered": "Un colis sortant a été livré"
+    }
+  },
+  "entity": {
+    "button": {
+      "refresh": {
+        "name": "Actualiser"
+      }
+    },
+    "calendar": {
+      "deliveries": {
+        "name": "Livraisons"
+      }
+    },
+    "sensor": {
+      "incoming_parcels": {
+        "name": "Colis entrants",
+        "unit_of_measurement": "colis"
+      },
+      "parcel": {
+        "name": "Colis {barcode}"
+      },
+      "outgoing_parcels": {
+        "name": "Colis sortants",
+        "unit_of_measurement": "colis"
+      },
+      "delivered_parcels": {
+        "name": "Colis livrés",
+        "unit_of_measurement": "colis"
+      },
+      "outgoing_delivered_parcels": {
+        "name": "Colis sortants livrés",
+        "unit_of_measurement": "colis"
+      },
+      "next_delivery": {
+        "name": "Prochaine livraison"
+      },
+      "en_route_to_parcel_shop": {
+        "name": "En route vers un ParcelShop",
+        "unit_of_measurement": "colis"
+      },
+      "awaiting_pickup": {
+        "name": "Prêt pour le retrait",
+        "unit_of_measurement": "colis"
+      },
+      "last_update": {
+        "name": "Dernière mise à jour réussie"
+      }
+    }
+  }
+}
