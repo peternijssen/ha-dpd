@@ -1,6 +1,6 @@
 """Tests for the DPD coordinator filter functions, data shape and error handling."""
 from datetime import datetime, timedelta, timezone
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -18,6 +18,7 @@ from custom_components.dpd.coordinator import (
     _refresh_interval,
 )
 from custom_components.dpd.parcels import (
+    _apply_delivered_filter_canonical,
     _augment_dimensions,
     _tracking_url,
     _unknown_descriptions_logged,
@@ -180,6 +181,41 @@ async def test_delivered_filter_parcels_limits_count(hass):
 
 
 # ---------------------------------------------------------------------------
+# _apply_delivered_filter_canonical — DE's coordinator path (already-normalized
+# parcels, reading ``delivered_at`` directly instead of DPD's raw status shape)
+# ---------------------------------------------------------------------------
+
+
+def test_delivered_filter_canonical_days_excludes_old_parcels():
+    recent = (datetime.now(timezone.utc) - timedelta(days=2)).isoformat()
+    old = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
+    parcels = [
+        {"barcode": "new", "delivered_at": recent},
+        {"barcode": "old", "delivered_at": old},
+    ]
+    result = _apply_delivered_filter_canonical(parcels, _mock_entry("days", 7))
+    assert [p["barcode"] for p in result] == ["new"]
+
+
+def test_delivered_filter_canonical_includes_parcel_without_delivered_at():
+    parcels = [{"barcode": "x", "delivered_at": None}]
+    result = _apply_delivered_filter_canonical(parcels, _mock_entry("days", 7))
+    assert len(result) == 1
+
+
+def test_delivered_filter_canonical_ignores_unparseable_delivered_at():
+    parcels = [{"barcode": "x", "delivered_at": "not-a-date"}]
+    result = _apply_delivered_filter_canonical(parcels, _mock_entry("days", 7))
+    assert len(result) == 1
+
+
+def test_delivered_filter_canonical_parcels_limits_count():
+    parcels = [{"barcode": f"P{i}", "delivered_at": None} for i in range(10)]
+    result = _apply_delivered_filter_canonical(parcels, _mock_entry("parcels", 3))
+    assert len(result) == 3
+
+
+# ---------------------------------------------------------------------------
 # DpdCoordinator._async_update_data
 # ---------------------------------------------------------------------------
 
@@ -264,6 +300,142 @@ async def test_coordinator_raises_update_failed_on_api_error(hass):
     coordinator = DpdCoordinator(hass, client, _mock_entry())
 
     with pytest.raises(UpdateFailed):
+        await coordinator._async_update_data()
+
+
+# ---------------------------------------------------------------------------
+# DpdCoordinator._async_fetch_de — DPD Germany's SOAP backend
+# ---------------------------------------------------------------------------
+
+
+def _de_parcel(
+    barcode: str,
+    *,
+    delivered: bool = False,
+    delivered_at: str | None = None,
+    planned_from: str | None = None,
+) -> dict:
+    """A minimal already-normalized parcel, matching normalize_parcel_de's shape."""
+    return {
+        "carrier": "DPD",
+        "barcode": barcode,
+        "status": ParcelStatus.DELIVERED if delivered else ParcelStatus.OUT_FOR_DELIVERY,
+        "delivered": delivered,
+        "delivered_at": delivered_at,
+        "planned_from": planned_from,
+        "planned_to": None,
+        "raw": {},
+    }
+
+
+async def test_coordinator_de_splits_active_and_delivered(hass):
+    de_session = MagicMock()
+    coordinator = DpdCoordinator(hass, None, _mock_entry("days", 30), de_session=de_session)
+
+    with patch(
+        "custom_components.dpd.coordinator.async_get_all_parcels_de",
+        new=AsyncMock(
+            return_value=(
+                [_de_parcel("A"), _de_parcel("B", delivered=True)],
+                [_de_parcel("C", delivered=True)],
+            )
+        ),
+    ):
+        result = await coordinator._async_update_data()
+
+    assert [p["barcode"] for p in result["incoming_active"]] == ["A"]
+    assert [p["barcode"] for p in result["incoming_delivered"]] == ["B"]
+    assert result["outgoing_active"] == []
+    assert [p["barcode"] for p in result["outgoing_delivered"]] == ["C"]
+
+
+async def test_coordinator_de_applies_canonical_delivered_filter(hass):
+    recent = (datetime.now(timezone.utc) - timedelta(days=2)).isoformat()
+    old = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
+    de_session = MagicMock()
+    coordinator = DpdCoordinator(hass, None, _mock_entry("days", 7), de_session=de_session)
+
+    with patch(
+        "custom_components.dpd.coordinator.async_get_all_parcels_de",
+        new=AsyncMock(
+            return_value=(
+                [
+                    _de_parcel("new", delivered=True, delivered_at=recent),
+                    _de_parcel("old", delivered=True, delivered_at=old),
+                ],
+                [],
+            )
+        ),
+    ):
+        result = await coordinator._async_update_data()
+
+    assert [p["barcode"] for p in result["incoming_delivered"]] == ["new"]
+
+
+async def test_coordinator_de_raises_config_entry_auth_failed_on_auth_error(hass):
+    from homeassistant.exceptions import ConfigEntryAuthFailed
+
+    de_session = MagicMock()
+    coordinator = DpdCoordinator(hass, None, _mock_entry(), de_session=de_session)
+
+    with (
+        patch(
+            "custom_components.dpd.coordinator.async_get_all_parcels_de",
+            new=AsyncMock(side_effect=DpdAuthError("bad creds")),
+        ),
+        pytest.raises(ConfigEntryAuthFailed),
+    ):
+        await coordinator._async_update_data()
+
+
+async def test_coordinator_de_logs_fetch_summary_and_raw_payload(hass, caplog):
+    """Mirrors the general path's debug logging — without it, a successful
+    poll leaves no trace that parcels were actually fetched/normalized."""
+    de_session = MagicMock()
+    coordinator = DpdCoordinator(hass, None, _mock_entry(), de_session=de_session)
+
+    with (
+        patch(
+            "custom_components.dpd.coordinator.async_get_all_parcels_de",
+            new=AsyncMock(return_value=([_de_parcel("A")], [])),
+        ),
+        caplog.at_level("DEBUG"),
+    ):
+        await coordinator._async_update_data()
+
+    assert any("shipments fetched: 1 incoming" in r.message for r in caplog.records)
+    assert any("raw parcels payload" in r.message for r in caplog.records)
+
+
+async def test_coordinator_de_skips_raw_payload_log_when_empty(hass, caplog):
+    de_session = MagicMock()
+    coordinator = DpdCoordinator(hass, None, _mock_entry(), de_session=de_session)
+
+    with (
+        patch(
+            "custom_components.dpd.coordinator.async_get_all_parcels_de",
+            new=AsyncMock(return_value=([], [])),
+        ),
+        caplog.at_level("DEBUG"),
+    ):
+        await coordinator._async_update_data()
+
+    assert not any("raw parcels payload" in r.message for r in caplog.records)
+
+
+async def test_coordinator_de_raises_update_failed_on_api_error(hass):
+    from homeassistant.helpers.update_coordinator import UpdateFailed
+
+    de_session = MagicMock()
+    coordinator = DpdCoordinator(hass, None, _mock_entry(), de_session=de_session)
+
+    with (
+        patch(
+            "custom_components.dpd.coordinator.async_get_all_parcels_de",
+            new=AsyncMock(side_effect=DpdApiError(500)),
+        ),
+        pytest.raises(UpdateFailed),
+    ):
         await coordinator._async_update_data()
 
 

@@ -55,16 +55,21 @@ entry. Runtime-only; the tests don't catch a regression here.
   expected until one arrives. `KNOWN_DESCRIPTIONS`'s existing one-shot
   `UNKNOWN`+`WARNING` fallback (see *Status & pickup* below) is the safety
   net, not new code written for this.
-- **`DPD-DE` and `DPD-CH` are deliberately absent.** DE briefly shipped in
-  2.8.0 as a blind pre-release, then was confirmed (2026-08-11, live probe
-  with a real DE account) to run on a wholly separate stack —
-  `portal.dpd.de`, ASP.NET WebForms, no shared Keycloak realm, same shape as
-  Poland — and cannot work through this repo's `api.py` at any BU value; it
-  needs its own build like `dpd-pl` would. CH looked plausible (present in
-  both the dropdown and the app's BU list) but the maintainer found evidence
-  of a possibly-separate dedicated Swiss app too — unresolved, so it stays
-  out until it gets its own individual investigation, same as PL/DE.
-  **Do not re-add either without a fresh capture.**
+- **`DPD-CH` is deliberately absent.** Present in both the myDPD preferences
+  dropdown and the app's BU list, but the maintainer found evidence of a
+  possibly-separate dedicated Swiss app too — unresolved, so it stays out
+  until it gets its own individual investigation, same treatment DE got
+  before its `countries/de/` build (below). **Do not re-add without a fresh
+  capture.**
+- **`DPD-DE` is not a `BUSINESS_UNITS` entry — it runs its own build.** DE
+  briefly shipped in 2.8.0 as a blind pre-release, then was confirmed
+  (2026-08-11, live probe) to run on a wholly separate stack —
+  `api.paketnavigator.de`, an ASP.NET SOAP web service, no shared Keycloak
+  realm — so it cannot work through `api.py` at any BU value. It now has its
+  own module (see **Germany** below) instead. The BU dropdown still carries a
+  `DPD-DE` *option value* (`_DE_BU_VALUE` in `config_flow.py`) purely to
+  route the same form into that separate path — it is never added to
+  `BUSINESS_UNITS` or sent to `api.py`.
 - **`DPD-UK` is present, but riding on `DPD-NL` under the hood — not a real
   business-unit code.** `carrier-research/dpd/dpd-uk.md` static-teardown'd
   the UK *mobile app* as its own Firebase stack, separate from myDPD/Keycloak
@@ -130,6 +135,66 @@ entry. Runtime-only; the tests don't catch a regression here.
   interleave once already.
 - The user step's `description` still links a pre-filled "Add country" issue
   for anything beyond the supported list.
+
+**Germany (`countries/de/`)**
+- **Wholly separate transport, isolated in its own package.** `countries/de/
+  session.py` owns the SOAP session (envelope, signing, login lifecycle);
+  `countries/de/__init__.py` owns status derivation + `normalize_parcel_de`.
+  Neither `api.py` nor `coordinator.py`'s general fetch path is touched —
+  `DpdCoordinator` dispatches on whether `de_session` was passed
+  (`__init__.py` constructs a `DpdDeSession` instead of a `DpdApiClient` when
+  `CONF_COUNTRY == COUNTRY_DE`), everything past that one dispatch point
+  (sorting, filtering, event-firing) is shared with the general path.
+- **Two-stage login, not documented anywhere DPD publishes** — discovered by
+  capturing a working third-party client (`TA2k/ioBroker.parcel`) against a
+  real account, not from the APK decompile the original `BUILD_PLAN_DE.md`
+  was built from. An anonymous `getSessionFullState` (empty `SessionToken`)
+  bootstraps a throwaway `SessionToken`; `getUserLogin` exchanges that plus
+  credentials for the real account `SessionToken` + `cloudUserID`.
+  `async_login()` always runs both steps — there is no one-stage path.
+- **The SOAP envelope double-wraps every call**: a bare `<methodName>`
+  element around an inner `<methodNameRequest>` element that holds the
+  fields (`_build_envelope`); responses unwrap the same way
+  (`<methodNameResponse><methodNameResult>…`, case-sensitive,
+  lowercase-first). Getting either wrapper wrong doesn't 400 — the server
+  NullReferenceExceptions into a generic HTTP 500 SOAP fault, which
+  `_async_raw_call` detects via `"faultstring" in body` and raises
+  `DpdApiError` (not `DpdAuthError` — a fault is a shape bug, not a rejected
+  login, and must not push a user into reauth).
+  `KeyPhase` is signed the same way (`compute_key_phase`; minute-derived
+  MD5, see the docstring) but was never the actual bug.
+- **Failure detection reads `Ack` + a top-level singular `ErrorCode`**, not
+  `BUILD_PLAN_DE.md`'s decompiled `ErrorDataList[]` shape alone — real
+  rejections use both; `_error_codes()` unions them. `async_get_parcels()` /
+  `async_call()` reauth **once** on `ERROR_SESSION_NOT_VALID` /
+  `ERROR_KEYPHASE`, never loop; two consecutive `ERROR_KEYPHASE` responses
+  warn once (`_warn_keyphase_rotation_once`) since that likely means DPD
+  rotated the partner secret, not routine expiry.
+- **Status is derivation-first, not enum-first** — `StatusID` has no closed
+  vocabulary, so `map_parcel_status_de` falls through `ParcelFlowTypeID` →
+  `DeliveryParcelShop.ParcelStatus` → `LastStatusInfo.StatusID` →
+  `StatusInfoContainer` slots (deepest-reached-first) →
+  `isDelayed`/`showWarning` → `UNKNOWN`, one-shot-warning at the first
+  unmapped point. As of 2026-08-17 only login + an empty inbox have been
+  wire-confirmed on a real account — the status vocabulary itself is still
+  unexercised; treat every mapped `StatusID`/slot as provisional until a real
+  parcel confirms it.
+- **`CONF_DE_HARDWARE_ID` is persisted in `entry.data`**, generated once at
+  config-flow time (`uuid4()`), and reused on every restart
+  (`__init__.py` falls back to a fresh one only if it's somehow missing) — a
+  new id every setup would look like a different device to DPD on every
+  reload.
+- **No BU, no FMP, no per-parcel detail endpoint, no UK-style tracking
+  lookup** — `async_get_all_parcels_de` does all enrichment (incl. opt-in
+  history via `getTrackingScanList`) before `_async_fetch_de` ever sees the
+  parcels, so DE's coordinator path filters an already-normalized list
+  (`_apply_delivered_filter_canonical` in `parcels.py`, reading
+  `delivered_at` off the normalized shape, not `_apply_delivered_filter`'s
+  raw-payload shape).
+- Debug logging (`_LOGGER.debug`, gated behind `isEnabledFor(DEBUG)`) in
+  `_async_fetch_de` mirrors the general path's shipment-count + raw-payload
+  summary — added after the initial build shipped with none, which left no
+  way to confirm a successful DE poll actually fetched anything.
 
 **Status & pickup**
 - The raw description lives on `raw_status`, never `status`; unmapped →

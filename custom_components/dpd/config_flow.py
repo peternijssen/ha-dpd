@@ -4,6 +4,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping
 from typing import Any
+from uuid import uuid4
 
 import aiohttp
 import voluptuous as vol
@@ -21,12 +22,16 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import DpdApiClient, DpdApiError, DpdAuthError
 from .const import (
-    BUSINESS_UNITS,
     CONF_BU,
+    CONF_COUNTRY,
+    CONF_DE_HARDWARE_ID,
     CONF_DELIVERED_FILTER_AMOUNT,
     CONF_DELIVERED_FILTER_TYPE,
     CONF_INCLUDE_HISTORY,
     CONF_REFRESH_INTERVAL,
+    COUNTRY_DE,
+    COUNTRY_GENERAL,
+    COUNTRY_OPTIONS,
     DEFAULT_BU,
     DEFAULT_DELIVERED_FILTER_AMOUNT,
     DEFAULT_DELIVERED_FILTER_TYPE,
@@ -36,18 +41,24 @@ from .const import (
     NEW_COUNTRY_ISSUE_URL,
     REFRESH_INTERVAL_OPTIONS,
 )
+from .countries.de.session import DpdDeSession
 
 _LOGGER = logging.getLogger(__name__)
+
+# The one selected value that routes to DPD Germany instead of the general
+# backend — never added to BUSINESS_UNITS itself (see COUNTRY_OPTIONS).
+_DE_BU_VALUE = "DPD-DE"
 
 _BU_SELECTOR = selector.SelectSelector(
     selector.SelectSelectorConfig(
         # Option values double as translation keys (hassfest requires
         # lower-case, no upper-case BU codes like ``DPD-DE``) — the
-        # upper-case value HA stores/sends to the API is recovered via
-        # ``.upper()`` right after the form submits (see async_step_user).
-        options=[bu["value"].lower() for bu in BUSINESS_UNITS],
+        # upper-case value HA stores/sends is recovered via ``.upper()``
+        # right after the form submits (see async_step_user).
+        options=[bu["value"].lower() for bu in COUNTRY_OPTIONS],
         translation_key=CONF_BU,
         mode=selector.SelectSelectorMode.DROPDOWN,
+        sort=True,
     )
 )
 
@@ -72,7 +83,10 @@ _USER_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_EMAIL): str,
         vol.Required(CONF_PASSWORD): str,
-        vol.Required(CONF_BU, default=DEFAULT_BU): _BU_SELECTOR,
+        # No default: the list now includes Germany's wholly separate
+        # backend, so silently pre-selecting NL risked a DE account's
+        # credentials being validated against the wrong backend.
+        vol.Required(CONF_BU): _BU_SELECTOR,
     }
 )
 
@@ -102,9 +116,11 @@ class DpdConfigFlow(ConfigFlow, domain=DOMAIN):
 
     def __init__(self) -> None:
         """Initialize the config flow."""
+        self._country: str = COUNTRY_GENERAL.upper()
         self._email: str = ""
         self._password: str = ""
         self._bu: str = DEFAULT_BU
+        self._de_hardware_id: str = ""
 
     @staticmethod
     @callback
@@ -112,40 +128,81 @@ class DpdConfigFlow(ConfigFlow, domain=DOMAIN):
         """Return the options flow handler."""
         return DpdOptionsFlowHandler()
 
-    async def _validate_credentials(self, email: str, password: str, bu: str) -> None:
-        """Validate credentials against the live DPD auth flow."""
+    async def _validate_general_credentials(
+        self, email: str, password: str, bu: str
+    ) -> None:
+        """Validate credentials against the live general/NL auth flow."""
         session = async_get_clientsession(self.hass)
         client = DpdApiClient(email, password, session, bu=bu)
         await client.async_login()
 
+    async def _validate_de_credentials(
+        self, email: str, password: str, hardware_id: str
+    ) -> None:
+        """Validate credentials against the live DE login."""
+        session = async_get_clientsession(self.hass)
+        de_session = DpdDeSession(session, email, password, hardware_id)
+        await de_session.async_login()
+
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Show the credential form and validate on submit."""
+        """Show the credential + country/BU form and validate on submit.
+
+        One dropdown for both: DPD Germany's separate SOAP backend sits
+        alongside NL and the other business units (``COUNTRY_OPTIONS``) —
+        picking it branches this same submit into the DE validation path
+        instead of asking "which backend" as a question of its own.
+        """
         errors: dict[str, str] = {}
 
         if user_input is not None:
             email = user_input[CONF_EMAIL]
             password = user_input[CONF_PASSWORD]
-            bu = user_input[CONF_BU].upper()
+            selected = user_input[CONF_BU].upper()
 
-            try:
-                await self._validate_credentials(email, password, bu)
-            except DpdAuthError:
-                errors["base"] = "invalid_auth"
-            except (DpdApiError, aiohttp.ClientError):
-                errors["base"] = "cannot_connect"
+            if selected == _DE_BU_VALUE:
+                hardware_id = str(uuid4())
+                try:
+                    await self._validate_de_credentials(email, password, hardware_id)
+                except DpdAuthError:
+                    errors["base"] = "invalid_auth"
+                except (DpdApiError, aiohttp.ClientError):
+                    errors["base"] = "cannot_connect"
+                else:
+                    await self.async_set_unique_id(f"DE:{email}")
+                    self._abort_if_unique_id_configured()
+                    self._email = email
+                    self._password = password
+                    self._country = COUNTRY_DE.upper()
+                    self._de_hardware_id = hardware_id
+                    return await self.async_step_delivered()
             else:
-                await self.async_set_unique_id(f"{bu}:{email}")
-                self._abort_if_unique_id_configured()
-                self._email = email
-                self._password = password
-                self._bu = bu
-                return await self.async_step_delivered()
+                try:
+                    await self._validate_general_credentials(
+                        email, password, selected
+                    )
+                except DpdAuthError:
+                    errors["base"] = "invalid_auth"
+                except (DpdApiError, aiohttp.ClientError):
+                    errors["base"] = "cannot_connect"
+                else:
+                    await self.async_set_unique_id(f"{selected}:{email}")
+                    self._abort_if_unique_id_configured()
+                    self._email = email
+                    self._password = password
+                    self._bu = selected
+                    self._country = COUNTRY_GENERAL.upper()
+                    return await self.async_step_delivered()
 
+        schema = (
+            self.add_suggested_values_to_schema(_USER_SCHEMA, user_input)
+            if user_input is not None
+            else _USER_SCHEMA
+        )
         return self.async_show_form(
             step_id="user",
-            data_schema=_USER_SCHEMA,
+            data_schema=schema,
             errors=errors,
             description_placeholders={"issue_url": NEW_COUNTRY_ISSUE_URL},
         )
@@ -155,13 +212,18 @@ class DpdConfigFlow(ConfigFlow, domain=DOMAIN):
     ) -> ConfigFlowResult:
         """Show the delivered-parcels filter form."""
         if user_input is not None:
+            data: dict[str, Any] = {
+                CONF_EMAIL: self._email,
+                CONF_PASSWORD: self._password,
+                CONF_COUNTRY: self._country,
+            }
+            if self._country == COUNTRY_GENERAL.upper():
+                data[CONF_BU] = self._bu
+            else:
+                data[CONF_DE_HARDWARE_ID] = self._de_hardware_id
             return self.async_create_entry(
                 title=self._email,
-                data={
-                    CONF_EMAIL: self._email,
-                    CONF_PASSWORD: self._password,
-                    CONF_BU: self._bu,
-                },
+                data=data,
                 options={
                     CONF_DELIVERED_FILTER_TYPE: user_input[CONF_DELIVERED_FILTER_TYPE],
                     CONF_DELIVERED_FILTER_AMOUNT: int(
@@ -187,6 +249,7 @@ class DpdConfigFlow(ConfigFlow, domain=DOMAIN):
         """Show the re-auth credential form and update the existing entry on success."""
         errors: dict[str, str] = {}
         reauth_entry = self._get_reauth_entry()
+        country = reauth_entry.data.get(CONF_COUNTRY, COUNTRY_GENERAL.upper())
         bu = reauth_entry.data.get(CONF_BU, DEFAULT_BU)
 
         if user_input is not None:
@@ -194,7 +257,13 @@ class DpdConfigFlow(ConfigFlow, domain=DOMAIN):
             password = user_input[CONF_PASSWORD]
 
             try:
-                await self._validate_credentials(email, password, bu)
+                if country == COUNTRY_DE.upper():
+                    hardware_id = reauth_entry.data.get(CONF_DE_HARDWARE_ID) or str(
+                        uuid4()
+                    )
+                    await self._validate_de_credentials(email, password, hardware_id)
+                else:
+                    await self._validate_general_credentials(email, password, bu)
             except DpdAuthError:
                 errors["base"] = "invalid_auth"
             except (DpdApiError, aiohttp.ClientError):
@@ -203,7 +272,10 @@ class DpdConfigFlow(ConfigFlow, domain=DOMAIN):
                 # Guard against re-authenticating with a *different* DPD
                 # account — the entry (and all its entities) belong to the
                 # original account's unique_id.
-                await self.async_set_unique_id(f"{bu}:{email}")
+                unique_id = (
+                    f"DE:{email}" if country == COUNTRY_DE.upper() else f"{bu}:{email}"
+                )
+                await self.async_set_unique_id(unique_id)
                 self._abort_if_unique_id_mismatch()
                 return self.async_update_reload_and_abort(
                     reauth_entry,

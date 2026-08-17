@@ -10,10 +10,13 @@ from homeassistant.data_entry_flow import FlowResultType
 from custom_components.dpd.api import DpdAuthError
 from custom_components.dpd.const import (
     CONF_BU,
+    CONF_COUNTRY,
+    CONF_DE_HARDWARE_ID,
     CONF_DELIVERED_FILTER_AMOUNT,
     CONF_DELIVERED_FILTER_TYPE,
     CONF_INCLUDE_HISTORY,
     CONF_REFRESH_INTERVAL,
+    COUNTRY_DE,
     DEFAULT_BU,
     DEFAULT_REFRESH_INTERVAL,
     DOMAIN,
@@ -289,3 +292,172 @@ async def test_reauth_flow_aborts_on_different_account(hass):
     assert result["type"] is FlowResultType.ABORT
     assert result["reason"] == "unique_id_mismatch"
     assert entry.data[CONF_EMAIL] == _USER_INPUT[CONF_EMAIL]
+
+
+# ---------------------------------------------------------------------------
+# DPD Germany — separate SOAP backend, branched off the same BU dropdown
+# ---------------------------------------------------------------------------
+
+_DE_EMAIL = "user@example.de"
+_DE_FORM_INPUT = {
+    CONF_EMAIL: _DE_EMAIL,
+    CONF_PASSWORD: "secret",
+    CONF_BU: "dpd-de",
+}
+
+
+@pytest.mark.asyncio
+async def test_user_flow_de_creates_entry_with_hardware_id(hass):
+    with patch(
+        "custom_components.dpd.config_flow.DpdDeSession.async_login",
+        new=AsyncMock(return_value=None),
+    ):
+        result = await hass.config_entries.flow.async_init(
+            DOMAIN, context={"source": SOURCE_USER}
+        )
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], user_input=_DE_FORM_INPUT
+        )
+        assert result["type"] is FlowResultType.FORM
+        assert result["step_id"] == "delivered"
+
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], user_input=_DELIVERED_INPUT
+        )
+
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert result["data"][CONF_EMAIL] == _DE_EMAIL
+    assert result["data"][CONF_COUNTRY] == COUNTRY_DE.upper()
+    assert result["data"][CONF_DE_HARDWARE_ID]
+    assert CONF_BU not in result["data"]
+
+
+@pytest.mark.asyncio
+async def test_user_flow_de_invalid_auth(hass):
+    with patch(
+        "custom_components.dpd.config_flow.DpdDeSession.async_login",
+        new=AsyncMock(side_effect=DpdAuthError("nope")),
+    ):
+        result = await hass.config_entries.flow.async_init(
+            DOMAIN, context={"source": SOURCE_USER}
+        )
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], user_input=_DE_FORM_INPUT
+        )
+    assert result["type"] is FlowResultType.FORM
+    assert result["errors"] == {"base": "invalid_auth"}
+
+
+@pytest.mark.asyncio
+async def test_user_flow_de_cannot_connect(hass):
+    with patch(
+        "custom_components.dpd.config_flow.DpdDeSession.async_login",
+        new=AsyncMock(side_effect=aiohttp.ClientError("boom")),
+    ):
+        result = await hass.config_entries.flow.async_init(
+            DOMAIN, context={"source": SOURCE_USER}
+        )
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], user_input=_DE_FORM_INPUT
+        )
+    assert result["type"] is FlowResultType.FORM
+    assert result["errors"] == {"base": "cannot_connect"}
+
+
+@pytest.mark.asyncio
+async def test_user_flow_de_aborts_when_already_configured(hass):
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    MockConfigEntry(
+        domain=DOMAIN,
+        unique_id=f"DE:{_DE_EMAIL}",
+        data={
+            CONF_EMAIL: _DE_EMAIL,
+            CONF_PASSWORD: "secret",
+            CONF_COUNTRY: COUNTRY_DE.upper(),
+            CONF_DE_HARDWARE_ID: "existing-hw-id",
+        },
+    ).add_to_hass(hass)
+
+    with patch(
+        "custom_components.dpd.config_flow.DpdDeSession.async_login",
+        new=AsyncMock(return_value=None),
+    ):
+        result = await hass.config_entries.flow.async_init(
+            DOMAIN, context={"source": SOURCE_USER}
+        )
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], user_input=_DE_FORM_INPUT
+        )
+
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "already_configured"
+
+
+@pytest.mark.asyncio
+async def test_reauth_flow_de_updates_credentials_and_reloads(hass):
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        unique_id=f"DE:{_DE_EMAIL}",
+        data={
+            CONF_EMAIL: _DE_EMAIL,
+            CONF_PASSWORD: "secret",
+            CONF_COUNTRY: COUNTRY_DE.upper(),
+            CONF_DE_HARDWARE_ID: "existing-hw-id",
+        },
+    )
+    entry.add_to_hass(hass)
+
+    with (
+        patch(
+            "custom_components.dpd.config_flow.DpdDeSession.async_login",
+            new=AsyncMock(return_value=None),
+        ),
+        patch(
+            "homeassistant.config_entries.ConfigEntries.async_reload",
+            new=AsyncMock(return_value=True),
+        ),
+    ):
+        result = await entry.start_reauth_flow(hass)
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            user_input={CONF_EMAIL: _DE_EMAIL, CONF_PASSWORD: "new-secret"},
+        )
+
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "reauth_successful"
+    assert entry.data[CONF_PASSWORD] == "new-secret"
+    # The device identity (hardware id) survives a reauth unchanged.
+    assert entry.data[CONF_DE_HARDWARE_ID] == "existing-hw-id"
+
+
+@pytest.mark.asyncio
+async def test_reauth_flow_de_surfaces_invalid_auth(hass):
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        unique_id=f"DE:{_DE_EMAIL}",
+        data={
+            CONF_EMAIL: _DE_EMAIL,
+            CONF_PASSWORD: "secret",
+            CONF_COUNTRY: COUNTRY_DE.upper(),
+            CONF_DE_HARDWARE_ID: "existing-hw-id",
+        },
+    )
+    entry.add_to_hass(hass)
+
+    with patch(
+        "custom_components.dpd.config_flow.DpdDeSession.async_login",
+        new=AsyncMock(side_effect=DpdAuthError("nope")),
+    ):
+        result = await entry.start_reauth_flow(hass)
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            user_input={CONF_EMAIL: _DE_EMAIL, CONF_PASSWORD: "wrong"},
+        )
+
+    assert result["type"] is FlowResultType.FORM
+    assert result["errors"] == {"base": "invalid_auth"}

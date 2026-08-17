@@ -6,6 +6,23 @@ from homeassistant.const import Platform
 DOMAIN = "dpd"
 
 
+class DpdAuthError(Exception):
+    """Raised when DPD authentication fails.
+
+    Defined here (not in ``api.py``) so a country module can raise it
+    without an import cycle back through ``api.py``.
+    """
+
+
+class DpdApiError(Exception):
+    """Raised when a DPD API call returns a non-success status."""
+
+    def __init__(self, status_code: int) -> None:
+        """Store the status code that triggered the error."""
+        super().__init__(f"DPD API request failed with status {status_code}")
+        self.status_code = status_code
+
+
 class ParcelStatus(StrEnum):
     """Carrier-agnostic parcel status.
 
@@ -110,6 +127,14 @@ BUSINESS_UNITS = [
 
 DEFAULT_BU = "DPD-NL"
 
+# The config-flow's single country/BU dropdown — BUSINESS_UNITS plus DPD
+# Germany's separate SOAP backend, so the user picks a destination country
+# once and never has to answer "which backend" as its own question. Kept
+# apart from BUSINESS_UNITS itself: that constant is also used to build
+# general-backend requests (bu query values sent to myDPD/Keycloak), and
+# "DPD-DE" must never flow into that path.
+COUNTRY_OPTIONS = BUSINESS_UNITS + [{"value": "DPD-DE", "label": "Germany"}]
+
 # ``DPD-UK`` has no real business-unit code of its own on the shared myDPD
 # backend (confirmed absent from the myDPD app's own BU list, see
 # carrier-research/dpd/dpd-log.md 2026-08-11) — but a UK account was
@@ -210,3 +235,29 @@ DEFAULT_INCLUDE_HISTORY = False
 # Cap each parcel's history to the most recent N events so the attribute
 # stays well under HA's ~16 KB state-attribute limit.
 HISTORY_MAX_EVENTS = 20
+
+# Country selection — DPD Germany is a separate backend from the
+# myDPD/dpdgroup.com one BUSINESS_UNITS configures. "general" is the shared
+# backend serving NL plus the 14 other business units; DE has none.
+CONF_COUNTRY = "country"
+COUNTRY_GENERAL = "general"
+COUNTRY_DE = "de"
+DEFAULT_COUNTRY = COUNTRY_GENERAL
+
+# Persisted in entry.data (not entry.options) so a DE hub keeps the same
+# device identity across HA restarts.
+CONF_DE_HARDWARE_ID = "de_hardware_id"
+
+# DPD Germany — Paketnavigator app SOAP backend. countries/de/session.py is
+# the only module that sends these on the wire.
+DPD_DE_SOAP_URL = "https://api.paketnavigator.de/services/v1/Navigator3Service.asmx"
+DPD_DE_SOAP_NAMESPACE = "https://cloud.dpd.com/"
+DPD_DE_PARTNER_NAME = "Android Paketnavigator3"
+DPD_DE_PARTNER_TOKEN = "A33363237662F5945576"
+DPD_DE_PARTNER_SECRET = "272 WetFd2mpXrgD"
+DPD_DE_USER_AGENT = "ksoap2-android/2.6.0+"
+DPD_DE_LANGUAGE = "de_DE"
+# SoapApiEndpoint.isTimeCorrupted() rejects a response TimeStamp more than
+# this far from local time — the practical clock-skew tolerance for the
+# minute-derived KeyPhase.
+DPD_DE_CLOCK_SKEW_TOLERANCE_MINUTES = 8

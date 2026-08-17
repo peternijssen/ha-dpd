@@ -10,10 +10,13 @@ from custom_components.dpd import DpdData
 from custom_components.dpd.api import DpdApiError, DpdAuthError
 from custom_components.dpd.const import (
     CONF_BU,
+    CONF_COUNTRY,
+    CONF_DE_HARDWARE_ID,
     CONF_DELIVERED_FILTER_AMOUNT,
     CONF_DELIVERED_FILTER_TYPE,
     CONF_INCLUDE_HISTORY,
     CONF_REFRESH_INTERVAL,
+    COUNTRY_DE,
     DEFAULT_BU,
     DEFAULT_REFRESH_INTERVAL,
     DOMAIN,
@@ -142,6 +145,131 @@ async def test_unload_entry_succeeds(hass):
         patch(
             "custom_components.dpd.DpdApiClient.async_get_parcels",
             new=AsyncMock(return_value=envelope()),
+        ),
+    ):
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+        assert await hass.config_entries.async_unload(entry.entry_id)
+        await hass.async_block_till_done()
+
+    assert entry.state is ConfigEntryState.NOT_LOADED
+
+
+# ---------------------------------------------------------------------------
+# DPD Germany — separate SOAP session, dispatched by CONF_COUNTRY
+# ---------------------------------------------------------------------------
+
+_DE_EMAIL = "user@example.de"
+_DE_ENTRY_DATA = {
+    CONF_EMAIL: _DE_EMAIL,
+    CONF_PASSWORD: "secret",
+    CONF_COUNTRY: COUNTRY_DE.upper(),
+    CONF_DE_HARDWARE_ID: "existing-hw-id",
+}
+
+
+def _add_de_entry(hass):
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        unique_id=f"DE:{_DE_EMAIL}",
+        data=_DE_ENTRY_DATA,
+        options={
+            CONF_DELIVERED_FILTER_TYPE: "days",
+            CONF_DELIVERED_FILTER_AMOUNT: 7,
+        },
+    )
+    entry.add_to_hass(hass)
+    return entry
+
+
+@pytest.mark.asyncio
+async def test_setup_entry_de_succeeds_and_stores_de_session(hass):
+    entry = _add_de_entry(hass)
+    with (
+        patch(
+            "custom_components.dpd.DpdDeSession.async_login",
+            new=AsyncMock(return_value=None),
+        ),
+        patch(
+            "custom_components.dpd.coordinator.async_get_all_parcels_de",
+            new=AsyncMock(return_value=([], [])),
+        ),
+    ):
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+    assert entry.state is ConfigEntryState.LOADED
+    assert isinstance(entry.runtime_data, DpdData)
+    assert entry.runtime_data.client is None
+    assert entry.runtime_data.de_session is not None
+
+
+@pytest.mark.asyncio
+async def test_setup_entry_de_reuses_the_stored_hardware_id(hass):
+    """The device identity must survive a restart — a fresh uuid every setup
+    would look like a different device to DPD Germany on every reload."""
+    entry = _add_de_entry(hass)
+    with (
+        patch(
+            "custom_components.dpd.DpdDeSession.async_login",
+            new=AsyncMock(return_value=None),
+        ),
+        patch(
+            "custom_components.dpd.coordinator.async_get_all_parcels_de",
+            new=AsyncMock(return_value=([], [])),
+        ),
+    ):
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+    assert entry.runtime_data.de_session._hardware_id == "existing-hw-id"
+
+
+@pytest.mark.asyncio
+async def test_setup_entry_de_auth_failure_triggers_reauth(hass):
+    entry = _add_de_entry(hass)
+    with patch(
+        "custom_components.dpd.DpdDeSession.async_login",
+        new=AsyncMock(side_effect=DpdAuthError("nope")),
+    ):
+        assert not await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+    assert entry.state is ConfigEntryState.SETUP_ERROR
+
+
+@pytest.mark.asyncio
+async def test_setup_entry_de_retries_when_first_refresh_fails(hass):
+    entry = _add_de_entry(hass)
+    with (
+        patch(
+            "custom_components.dpd.DpdDeSession.async_login",
+            new=AsyncMock(return_value=None),
+        ),
+        patch(
+            "custom_components.dpd.coordinator.async_get_all_parcels_de",
+            new=AsyncMock(side_effect=DpdApiError(500)),
+        ),
+    ):
+        assert not await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+    assert entry.state is ConfigEntryState.SETUP_RETRY
+
+
+@pytest.mark.asyncio
+async def test_unload_entry_de_succeeds(hass):
+    entry = _add_de_entry(hass)
+    with (
+        patch(
+            "custom_components.dpd.DpdDeSession.async_login",
+            new=AsyncMock(return_value=None),
+        ),
+        patch(
+            "custom_components.dpd.coordinator.async_get_all_parcels_de",
+            new=AsyncMock(return_value=([], [])),
         ),
     ):
         assert await hass.config_entries.async_setup(entry.entry_id)

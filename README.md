@@ -35,7 +35,7 @@ A custom Home Assistant integration that tracks your DPD shipments.
 - Configurable delivered-parcels sensor (last N days, or N most recent)
 - Automatic lifecycle management — per-parcel sensors are created and removed as parcels move through delivery
 - Re-authentication support
-- Country (business unit) selection during setup — Netherlands plus 14 other countries on DPD's shared myDPD backend (Argentina, Belgium, Croatia, Czech Republic, Estonia, France, Hungary, Italy, Latvia, Lithuania, Luxembourg, Portugal, Slovakia, Slovenia), more to come
+- Country (business unit) selection during setup — Netherlands plus 14 other countries on DPD's shared myDPD backend (Argentina, Belgium, Croatia, Czech Republic, Estonia, France, Hungary, Italy, Latvia, Lithuania, Luxembourg, Portugal, Slovakia, Slovenia), the UK (riding on the same NL backend), and Germany (its own separate backend), more to come
 - UI translated into the language of every supported country (plus English), including the country dropdown itself
 
 ## Requirements
@@ -75,7 +75,7 @@ Or click the button below to open it directly in HACS:
 |---|---|
 | Email | The email address of your DPD consumer account (the one you use in the myDPD mobile app). |
 | Password | The password for that account. Stored in the HA config entry and refreshed automatically when the integration triggers a re-authentication. |
-| Country | The DPD business unit to query. Netherlands is wire-confirmed; the other 14 (Argentina, Belgium, Croatia, Czech Republic, Estonia, France, Hungary, Italy, Latvia, Lithuania, Luxembourg, Portugal, Slovakia, Slovenia) are confirmed to share the same myDPD account backend and auth flow, but a non-NL parcel payload hasn't been captured yet — if a parcel's status ever looks wrong, please [report it](https://github.com/ha-parcel-integrations/ha-dpd/issues/new?template=unrecognised_status.yml). Germany, the UK, Poland, Switzerland and Brazil each run their own separate stack and aren't supported here yet — [request one](https://github.com/ha-parcel-integrations/ha-dpd/issues/new?title=Add%20country%3A%20%3Cyour%20country%3E&labels=enhancement) if you need it. |
+| Country | The DPD business unit to query. Netherlands is wire-confirmed; the other 14 (Argentina, Belgium, Croatia, Czech Republic, Estonia, France, Hungary, Italy, Latvia, Lithuania, Luxembourg, Portugal, Slovakia, Slovenia) are confirmed to share the same myDPD account backend and auth flow, but a non-NL parcel payload hasn't been captured yet — if a parcel's status ever looks wrong, please [report it](https://github.com/ha-parcel-integrations/ha-dpd/issues/new?template=unrecognised_status.yml). The UK also works, riding on that same NL backend under the hood. **Germany** has its own entry in the dropdown — it runs on a wholly separate Paketnavigator backend, and while login and the parcel list are wire-confirmed, its status vocabulary is still being filled in against real accounts, so please [report it](https://github.com/ha-parcel-integrations/ha-dpd/issues/new?template=unrecognised_status.yml) if a German parcel's status ever looks wrong. Poland, Switzerland and Brazil each run their own separate stack and aren't supported here yet — [request one](https://github.com/ha-parcel-integrations/ha-dpd/issues/new?title=Add%20country%3A%20%3Cyour%20country%3E&labels=enhancement) if you need it. |
 
 ## Options
 

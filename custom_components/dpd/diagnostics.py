@@ -8,10 +8,12 @@ from homeassistant.const import CONF_EMAIL, CONF_PASSWORD
 from homeassistant.core import HomeAssistant
 
 from . import DpdConfigEntry
+from .const import CONF_DE_HARDWARE_ID
 
 TO_REDACT = {
     CONF_EMAIL,
     CONF_PASSWORD,
+    CONF_DE_HARDWARE_ID,
     "email",
     "parcelNumber",
     "senderName",
@@ -21,6 +23,23 @@ TO_REDACT = {
     "houseNumber",
     "city",
     "phoneNumber",
+    # DPD Germany field names (different casing/shape from the general
+    # backend above) — the session token and every address/contact field
+    # an AddressType can carry.
+    "SessionToken",
+    "HardwareID",
+    "ParcelNo",
+    "Street",
+    "HouseNo",
+    "ZipCode",
+    "City",
+    "Phone",
+    "Mail",
+    "FirstName",
+    "LastName",
+    "Name",
+    "Company",
+    "ReceiverName",
 }
 
 

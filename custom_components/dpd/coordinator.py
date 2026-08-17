@@ -20,8 +20,11 @@ from .const import (
     DOMAIN,
     ParcelStatus,
 )
+from .countries.de import async_get_all_parcels_de
+from .countries.de.session import DpdDeSession
 from .parcels import (
     _apply_delivered_filter,
+    _apply_delivered_filter_canonical,
     _augment_dimensions,
     _description,
     build_history,
@@ -43,12 +46,27 @@ def _refresh_interval(entry: ConfigEntry) -> timedelta:
 
 
 class DpdCoordinator(DataUpdateCoordinator[dict[str, list[dict]]]):
-    """Coordinator that polls the DPD parcels API on a fixed schedule."""
+    """Coordinator that polls the DPD parcels API on a fixed schedule.
+
+    Dispatches the fetch to the general/NL+BU backend or DPD Germany's SOAP
+    backend, based on whether ``de_session`` was passed — everything past
+    that one dispatch point (sorting, filtering, event-firing) is shared.
+    """
 
     def __init__(
-        self, hass: HomeAssistant, client: DpdApiClient, entry: ConfigEntry
+        self,
+        hass: HomeAssistant,
+        client: DpdApiClient | None,
+        entry: ConfigEntry,
+        *,
+        de_session: DpdDeSession | None = None,
     ) -> None:
-        """Initialize the coordinator."""
+        """Initialize the coordinator.
+
+        ``client`` is the general/NL+BU transport; ``de_session`` is DPD
+        Germany's SOAP session. Exactly one of the two is used per hub —
+        ``__init__.py`` constructs the right one for the hub's country.
+        """
         super().__init__(
             hass,
             _LOGGER,
@@ -57,6 +75,7 @@ class DpdCoordinator(DataUpdateCoordinator[dict[str, list[dict]]]):
             update_interval=_refresh_interval(entry),
         )
         self._client = client
+        self._de_session = de_session
         # barcode -> last seen ParcelStatus. ``None`` on the first refresh so
         # we can suppress events for parcels that already existed when the
         # integration started (we do not know their previous state).
@@ -116,6 +135,43 @@ class DpdCoordinator(DataUpdateCoordinator[dict[str, list[dict]]]):
         return self._cached_device_id
 
     async def _async_update_data(self) -> dict[str, list[dict]]:
+        if self._de_session is not None:
+            incoming_all, outgoing_all = await self._async_fetch_de()
+        else:
+            incoming_all, outgoing_all = await self._async_fetch_general()
+
+        self._fire_change_events(incoming_all)
+        self._fire_outgoing_change_events(outgoing_all)
+
+        self._known_state = {
+            p["barcode"]: p["status"] for p in incoming_all if p.get("barcode")
+        }
+        self._known_delivery_times = {
+            p["barcode"]: (p.get("planned_from"), p.get("planned_to"))
+            for p in incoming_all
+            if p.get("barcode")
+        }
+        self._known_outgoing_state = {
+            p["barcode"]: p["status"] for p in outgoing_all if p.get("barcode")
+        }
+
+        self.last_success_time = datetime.now(timezone.utc)
+        return {
+            "incoming_active": [p for p in incoming_all if not p["delivered"]],
+            "incoming_delivered": [p for p in incoming_all if p["delivered"]],
+            "outgoing_active": [p for p in outgoing_all if not p["delivered"]],
+            "outgoing_delivered": [p for p in outgoing_all if p["delivered"]],
+        }
+
+    async def _async_fetch_general(self) -> tuple[list[dict], list[dict]]:
+        """Fetch + normalize the general/NL+BU backend, split active/delivered.
+
+        Returns each bucket already sorted (active ascending on
+        ``planned_from``, delivered descending on ``delivered_at``) and with
+        the delivered-retention filter applied, matching what
+        ``_async_update_data`` expects from both fetch paths.
+        """
+        assert self._client is not None
         try:
             payload = await self._client.async_get_parcels()
         except DpdAuthError as err:
@@ -210,36 +266,68 @@ class DpdCoordinator(DataUpdateCoordinator[dict[str, list[dict]]]):
         # Incoming = active + delivered, combined so the transition to
         # delivered is visible in one set (mirrors the outgoing pattern).
         incoming_all = normalized_active + normalized_delivered
-        self._fire_change_events(incoming_all)
-
         # Outgoing = active + delivered sent shipments, combined so a hop from
         # in-transit to delivered is visible in one set.
         outgoing_all = normalized_outgoing + normalized_outgoing_delivered
-        self._fire_outgoing_change_events(outgoing_all)
+        return incoming_all, outgoing_all
 
-        self._known_state = {
-            p["barcode"]: p["status"]
-            for p in incoming_all
-            if p.get("barcode")
-        }
-        self._known_delivery_times = {
-            p["barcode"]: (p.get("planned_from"), p.get("planned_to"))
-            for p in incoming_all
-            if p.get("barcode")
-        }
-        self._known_outgoing_state = {
-            p["barcode"]: p["status"]
-            for p in outgoing_all
-            if p.get("barcode")
-        }
+    async def _async_fetch_de(self) -> tuple[list[dict], list[dict]]:
+        """Fetch + normalize DPD Germany's SOAP backend, split active/delivered.
 
-        self.last_success_time = datetime.now(timezone.utc)
-        return {
-            "incoming_active": normalized_active,
-            "incoming_delivered": normalized_delivered,
-            "outgoing_active": normalized_outgoing,
-            "outgoing_delivered": normalized_outgoing_delivered,
-        }
+        DE has no BU, no FMP, no per-parcel detail endpoint and no UK-style
+        tracking lookup — the whole enrichment happens inside
+        ``async_get_all_parcels_de`` before this returns, so the buckets it
+        hands back are already fully normalized.
+        """
+        assert self._de_session is not None
+        try:
+            incoming, outgoing = await async_get_all_parcels_de(
+                self._de_session, include_history=self._include_history
+            )
+        except DpdAuthError as err:
+            _LOGGER.error("DPD Germany authentication failed: %s", err)
+            raise ConfigEntryAuthFailed("DPD Germany authentication failed") from err
+        except DpdApiError as err:
+            _LOGGER.warning("DPD Germany endpoint unreachable: %s", err)
+            raise UpdateFailed(f"DPD Germany error: {err}") from err
+
+        incoming_active = [p for p in incoming if not p["delivered"]]
+        incoming_delivered = _apply_delivered_filter_canonical(
+            [p for p in incoming if p["delivered"]], self.config_entry
+        )
+        outgoing_active = [p for p in outgoing if not p["delivered"]]
+        outgoing_delivered = _apply_delivered_filter_canonical(
+            [p for p in outgoing if p["delivered"]], self.config_entry
+        )
+
+        _LOGGER.debug(
+            "DPD Germany shipments fetched: %d incoming (%d active, %d delivered "
+            "shown), %d outgoing (%d active, %d delivered shown)",
+            len(incoming),
+            len(incoming_active),
+            len(incoming_delivered),
+            len(outgoing),
+            len(outgoing_active),
+            len(outgoing_delivered),
+        )
+        if incoming or outgoing:
+            _LOGGER.debug(
+                "DPD Germany raw parcels payload: %s",
+                [p["raw"] for p in incoming + outgoing],
+            )
+
+        normalized_active = sort_parcels_by_ts(incoming_active, "planned_from")
+        normalized_delivered = sort_parcels_by_ts(
+            incoming_delivered, "delivered_at", descending=True
+        )
+        normalized_outgoing = sort_parcels_by_ts(outgoing_active, "planned_from")
+        normalized_outgoing_delivered = sort_parcels_by_ts(
+            outgoing_delivered, "delivered_at", descending=True
+        )
+
+        incoming_all = normalized_active + normalized_delivered
+        outgoing_all = normalized_outgoing + normalized_outgoing_delivered
+        return incoming_all, outgoing_all
 
     def _fire_change_events(self, parcels: list[dict]) -> None:
         """Fire events for newly-registered parcels and parcel transitions.
@@ -369,6 +457,7 @@ class DpdCoordinator(DataUpdateCoordinator[dict[str, list[dict]]]):
         swallowed by the API client (returns ``None``) so a broken FMP
         call never breaks the parcels poll.
         """
+        assert self._client is not None
         for shipment in shipments:
             hashcode = fmp_hashcode(shipment)
             if not hashcode:
@@ -410,6 +499,7 @@ class DpdCoordinator(DataUpdateCoordinator[dict[str, list[dict]]]):
         failure is cached as ``{"_failed": True}`` so we do not retry on
         every refresh, but we do retry once the parcel's status moves.
         """
+        assert self._client is not None
         include_history = self._include_history
         for shipment, parcel_type in (
             *((s, "INCOMING") for s in incoming),
@@ -468,6 +558,7 @@ class DpdCoordinator(DataUpdateCoordinator[dict[str, list[dict]]]):
         never changes for a given parcel, unlike the detail cache's history
         option there is nothing here that would need a refetch.
         """
+        assert self._client is not None
         for shipment in shipments:
             barcode = shipment.get("parcelNumber")
             if not barcode or barcode in self._uk_tracking_cache:

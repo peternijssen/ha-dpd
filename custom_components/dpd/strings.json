@@ -110,7 +110,9 @@
         "dpd-lu": "Luxembourg",
         "chr-pt": "Portugal",
         "dpd-sk": "Slovakia",
-        "dpd-si": "Slovenia"
+        "dpd-si": "Slovenia",
+        "dpd-uk": "United Kingdom",
+        "dpd-de": "Germany"
       }
     }
   },
