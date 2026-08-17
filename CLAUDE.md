@@ -55,12 +55,17 @@ entry. Runtime-only; the tests don't catch a regression here.
   expected until one arrives. `KNOWN_DESCRIPTIONS`'s existing one-shot
   `UNKNOWN`+`WARNING` fallback (see *Status & pickup* below) is the safety
   net, not new code written for this.
-- **`DPD-CH` is deliberately absent.** Present in both the myDPD preferences
-  dropdown and the app's BU list, but the maintainer found evidence of a
-  possibly-separate dedicated Swiss app too — unresolved, so it stays out
-  until it gets its own individual investigation, same treatment DE got
-  before its `countries/de/` build (below). **Do not re-add without a fresh
-  capture.**
+- **`DPD-CH` is in `BUSINESS_UNITS`, confirmed (2026-08-17) by the maintainer's
+  own real, separately-registered mydpd.ch account** — logs in and lists
+  parcels through the same shared myDPD backend as NL/UK, not the
+  possibly-separate dedicated Swiss app that earlier left it deliberately out
+  (see `dpd.md`'s Log). Unlike `DPD-DE`, Switzerland turned out to share NL's
+  infra rather than run its own stack — do not conflate the two when reasoning
+  about a future country. Plain `DPD-<CC>` shape, so no `BU_API_OVERRIDES` /
+  `BU_COUNTRY_OVERRIDES` / `BU_TRACKING_URL_OVERRIDES` entry needed (`ch`
+  falls out of the default derivation, matching the mobileSlider asset URL
+  under `dpdgroup.com/ch/mydpd/`). A non-NL `v7/parcels` payload shape is
+  still unconfirmed by a live capture, same caveat as the 14 above.
 - **`DPD-DE` is not a `BUSINESS_UNITS` entry — it runs its own build.** DE
   briefly shipped in 2.8.0 as a blind pre-release, then was confirmed
   (2026-08-11, live probe) to run on a wholly separate stack —

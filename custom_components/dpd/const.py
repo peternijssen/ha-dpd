@@ -122,6 +122,7 @@ BUSINESS_UNITS = [
     {"value": "CHR-PT", "label": "Portugal"},
     {"value": "DPD-SK", "label": "Slovakia"},
     {"value": "DPD-SI", "label": "Slovenia"},
+    {"value": "DPD-CH", "label": "Switzerland"},
     {"value": "DPD-UK", "label": "United Kingdom"},
 ]
 
