@@ -274,6 +274,28 @@ async def test_get_parcel_detail_sends_the_configured_bu_unmodified():
 
 
 @pytest.mark.asyncio
+async def test_get_parcel_detail_remaps_uk_bu_to_nl_for_the_request():
+    """DPD-UK has no business-unit code of its own on the shared backend
+
+    (see BU_API_OVERRIDES / discussions/14) — the wire-level ``businessUnit``
+    must be the remapped ``DPD-NL``, while ``client.bu`` keeps ``DPD-UK`` for
+    tracking-url derivation and the config entry's unique_id.
+    """
+    session = _mock_session(_mock_response(200, {}))
+    client = DpdApiClient(
+        email="user@example.com",
+        password="secret",
+        session=session,
+        bu="DPD-UK",
+    )
+    client._token = "main-token"
+    await client.async_get_parcel_detail("01XXX")
+    _, kwargs = session.post.call_args
+    assert kwargs["params"]["businessUnit"] == "DPD-NL"
+    assert client.bu == "DPD-UK"
+
+
+@pytest.mark.asyncio
 async def test_get_parcel_detail_returns_none_on_non_200_so_main_poll_is_unaffected():
     """Detail is best-effort enrichment — any non-200 must surface as None
     rather than an exception that would crash the main parcels refresh."""

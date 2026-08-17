@@ -63,8 +63,41 @@ entry. Runtime-only; the tests don't catch a regression here.
   needs its own build like `dpd-pl` would. CH looked plausible (present in
   both the dropdown and the app's BU list) but the maintainer found evidence
   of a possibly-separate dedicated Swiss app too — unresolved, so it stays
-  out until it gets its own individual investigation, same as
-  PL/UK/DE. **Do not re-add either without a fresh capture.**
+  out until it gets its own individual investigation, same as PL/DE.
+  **Do not re-add either without a fresh capture.**
+- **`DPD-UK` is present, but riding on `DPD-NL` under the hood — not a real
+  business-unit code.** `carrier-research/dpd/dpd-uk.md` static-teardown'd
+  the UK *mobile app* as its own Firebase stack, separate from myDPD/Keycloak
+  — that finding still stands. But `github.com/ha-parcel-integrations/.github/
+  discussions/14` (2026-08-16/17) confirmed live that a UK account logs in
+  and lists its own parcels through the plain NL *web* myDPD flow (needed a
+  password reset first, since the account had no password — SSO-only). The
+  UK-GB/DPD-UK business unit itself doesn't exist anywhere on the shared
+  backend (absent from both the preferences dropdown and the myDPD app's own
+  BU list, see `dpd-log.md` 2026-08-11) — so **`BU_API_OVERRIDES` in
+  `const.py`** remaps `DPD-UK` → `DPD-NL` for every wire call
+  (Keycloak/consignee-sso/parcels/detail) in `api.py`, via a
+  `self._request_bu` distinct from `self._bu` — `client.bu` keeps the
+  configured `DPD-UK` for `unique_id` and the tracking-URL fallback.
+- **`DPD-UK`'s tracking URL is resolved live, not derived.** DPD UK's real
+  self-service tracker, `track.dpd.co.uk`, lives on a *third* separate host
+  again (`apis.track.dpd.co.uk`) from both myDPD and the app — but its
+  `GET /v1/reference?referenceNumber=<parcelNumber>&postcode=&origin=PRTK`
+  is **keyless**: confirmed live (2026-08-17) with no session cookie and an
+  empty/wrong postcode, all returning the same result — postcode isn't
+  checked at that step at all. It returns a DPD-assigned
+  `data[0].parcelCode` (``<14-digit-number>*<sequence>``, the sequence not a
+  postcode formula) that `track.dpd.co.uk/parcels/<parcelCode>` expects.
+  Only the *next* step, `/login`, needs reCAPTCHA — `ha-dpd` never calls it.
+  `DpdApiClient.async_get_uk_tracking_code` makes that one call;
+  `DpdCoordinator._enrich_uk_tracking_cache` caches the result per barcode
+  for the integration's lifetime (mirrors `_detail_cache`: never refetched,
+  a failure isn't retried either — the code cannot change once assigned).
+  `normalize_parcel(..., uk_tracking_code=...)` uses it when present;
+  `BU_COUNTRY_OVERRIDES["DPD-UK"] = "nl"` is the fallback for a barcode that
+  hasn't resolved yet or failed, not the primary link. See
+  `carrier-research/dpd/dpd-uk.md`'s "public web tracker" surface for the
+  full reverse-engineering trail.
 - `_tracking_url` derives its country segment from the account's `bu`
   (`DPD-DE` → `/de/`) rather than hardcoding `/nl/` — **`BU_COUNTRY_OVERRIDES`
   in `const.py`** handles the one BU whose code doesn't map to its country

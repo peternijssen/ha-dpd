@@ -81,6 +81,12 @@ class DpdCoordinator(DataUpdateCoordinator[dict[str, list[dict]]]):
         # cached as ``{"_failed": True, ...}`` so we don't hammer DPD when
         # their endpoint is flaky — retried once the parcel's status moves.
         self._detail_cache: dict[str, dict[str, Any]] = {}
+        # barcode -> track.dpd.co.uk parcelCode, or ``None`` on a failed
+        # lookup. UK-only (see _enrich_uk_tracking_cache); the code never
+        # changes for a given parcel, so — like the detail cache above — one
+        # successful (or failed) lookup per barcode is cached for the
+        # integration's lifetime, never refetched.
+        self._uk_tracking_cache: dict[str, str | None] = {}
         # Cached device id for this account, attached to every fired event so
         # device-trigger automations can filter to a specific DPD account.
         # ``None`` until the device exists (i.e. the sensors are set up).
@@ -139,6 +145,11 @@ class DpdCoordinator(DataUpdateCoordinator[dict[str, list[dict]]]):
             incoming_active + incoming_delivered,
             outgoing_active + outgoing_delivered,
         )
+        if self._client.bu == "DPD-UK":
+            await self._enrich_uk_tracking_cache(
+                incoming_active + incoming_delivered
+                + outgoing_active + outgoing_delivered
+            )
 
         _LOGGER.debug(
             "DPD shipments fetched: %d incoming (%d active, %d delivered shown), "
@@ -174,6 +185,9 @@ class DpdCoordinator(DataUpdateCoordinator[dict[str, list[dict]]]):
                 dimensions=dimensions,
                 history=history,
                 bu=self._client.bu,
+                uk_tracking_code=self._uk_tracking_cache.get(
+                    parcel.get("parcelNumber") or ""
+                ),
             )
 
         normalized_active = sort_parcels_by_ts(
@@ -445,6 +459,22 @@ class DpdCoordinator(DataUpdateCoordinator[dict[str, list[dict]]]):
                 # growing history timeline (see above).
                 "_status_description": _description(shipment),
             }
+
+    async def _enrich_uk_tracking_cache(self, shipments: list[dict]) -> None:
+        """Populate ``self._uk_tracking_cache`` for any UK barcode not yet seen.
+
+        Only called when the account's ``bu`` is ``DPD-UK``. One keyless call
+        per barcode, ever — the resolved ``parcelCode`` (or a failed lookup)
+        never changes for a given parcel, unlike the detail cache's history
+        option there is nothing here that would need a refetch.
+        """
+        for shipment in shipments:
+            barcode = shipment.get("parcelNumber")
+            if not barcode or barcode in self._uk_tracking_cache:
+                continue
+            self._uk_tracking_cache[barcode] = (
+                await self._client.async_get_uk_tracking_code(barcode)
+            )
 
     def _apply_delivered_filter(self, shipments: list[dict]) -> list[dict]:
         """Trim the delivered list according to the configured options."""

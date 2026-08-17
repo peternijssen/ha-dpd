@@ -8,6 +8,7 @@ from typing import Any
 import aiohttp
 
 from .const import (
+    BU_API_OVERRIDES,
     DEFAULT_BU,
     DPD_BASIC_TOKEN,
     DPD_CONSIGNEE_SSO_URL,
@@ -16,6 +17,7 @@ from .const import (
     DPD_GUEST_TOKEN_URL,
     DPD_PARCEL_DETAIL_URL,
     DPD_PARCELS_URL,
+    DPD_UK_REFERENCE_URL,
     KEYCLOAK_CLIENT_ID,
     KEYCLOAK_TOKEN_URL,
     USER_AGENT,
@@ -52,6 +54,11 @@ class DpdApiClient:
         self._password = password
         self._session = session
         self._bu = bu
+        # The value actually sent to Keycloak/consignee-sso/parcels/detail —
+        # remapped through BU_API_OVERRIDES for BUs with no business-unit
+        # code of their own (e.g. DPD-UK -> DPD-NL). `self._bu` itself stays
+        # the configured value: it drives the tracking URL and unique_id.
+        self._request_bu = BU_API_OVERRIDES.get(bu, bu)
         self._token: str | None = None
         self._reauth_lock = asyncio.Lock()
 
@@ -125,7 +132,7 @@ class DpdApiClient:
         async def _fetch() -> dict[str, Any]:
             async with self._session.post(
                 DPD_PARCELS_URL,
-                params={"bu": self._bu, "lang": "en"},
+                params={"bu": self._request_bu, "lang": "en"},
                 json={
                     "incomingParcels": [],
                     "sendingParcels": [],
@@ -162,7 +169,7 @@ class DpdApiClient:
         """
         params: dict[str, str] = {
             "parcelType": parcel_type,
-            "businessUnit": self._bu,
+            "businessUnit": self._request_bu,
             "lang": "en",
             "continueWithoutVerification": "false",
         }
@@ -254,6 +261,42 @@ class DpdApiClient:
             data: dict[str, Any] = await response.json(content_type=None)
         return data
 
+    async def async_get_uk_tracking_code(self, parcel_number: str) -> str | None:
+        """Resolve the ``track.dpd.co.uk`` parcelCode for a UK parcel number.
+
+        Best-effort, returns ``None`` on any failure. ``apis.track.dpd.co.uk``
+        is a wholly separate, keyless host from the myDPD backend the rest of
+        this client talks to — no Bearer token, no session. The ``postcode``
+        param is sent empty deliberately: a live check (2026-08-17) confirmed
+        the endpoint returns the same result regardless of postcode value, so
+        there is nothing gained by threading the receiver's postcode through
+        here. The returned ``parcelCode`` (``<14-digit-number>*<sequence>``)
+        is DPD-assigned and stable — safe to cache forever per barcode.
+        """
+        try:
+            async with self._session.get(
+                DPD_UK_REFERENCE_URL,
+                params={
+                    "origin": "PRTK",
+                    "postcode": "",
+                    "referenceNumber": parcel_number,
+                },
+                headers={
+                    "Accept": "application/json",
+                    "User-Agent": USER_AGENT,
+                },
+            ) as response:
+                if response.status != 200:
+                    return None
+                body: dict[str, Any] = await response.json(content_type=None)
+        except aiohttp.ClientError:
+            return None
+
+        matches = body.get("data") or []
+        if not matches:
+            return None
+        return matches[0].get("parcelCode")
+
     async def _async_call_with_reauth(self, coro_fn: Any) -> Any:
         """Call coro_fn(), re-authenticating once if the session has expired."""
         try:
@@ -268,7 +311,7 @@ class DpdApiClient:
     async def _async_consignee_sso(self, kc_token: str, guest_token: str) -> str:
         async with self._session.post(
             DPD_CONSIGNEE_SSO_URL,
-            params={"bu": self._bu},
+            params={"bu": self._request_bu},
             data=kc_token,
             headers={
                 "Authorization": f"Bearer {guest_token}",

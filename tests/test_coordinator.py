@@ -535,6 +535,93 @@ async def test_enrich_detail_cache_skips_already_cached_barcodes(hass):
 
 
 # ---------------------------------------------------------------------------
+# DpdCoordinator._enrich_uk_tracking_cache
+# ---------------------------------------------------------------------------
+
+
+async def test_enrich_uk_tracking_cache_populates_resolved_code(hass):
+    client = MagicMock()
+    client.async_get_uk_tracking_code = AsyncMock(
+        return_value="01234567890123*99999"
+    )
+    coordinator = DpdCoordinator(hass, client, _mock_entry())
+
+    shipment = shipment_sample("PARCEL_OUT_FOR_DELIVERY", parcel_number="01234567890123")
+    await coordinator._enrich_uk_tracking_cache([shipment])
+
+    client.async_get_uk_tracking_code.assert_awaited_once_with("01234567890123")
+    assert coordinator._uk_tracking_cache == {
+        "01234567890123": "01234567890123*99999"
+    }
+
+
+async def test_enrich_uk_tracking_cache_caches_failure_without_retry(hass):
+    client = MagicMock()
+    client.async_get_uk_tracking_code = AsyncMock(return_value=None)
+    coordinator = DpdCoordinator(hass, client, _mock_entry())
+
+    shipment = shipment_sample("PARCEL_OUT_FOR_DELIVERY", parcel_number="01ABC")
+    await coordinator._enrich_uk_tracking_cache([shipment])
+    await coordinator._enrich_uk_tracking_cache([shipment])
+
+    assert coordinator._uk_tracking_cache == {"01ABC": None}
+    client.async_get_uk_tracking_code.assert_awaited_once()
+
+
+async def test_enrich_uk_tracking_cache_skips_already_cached_barcodes(hass):
+    client = MagicMock()
+    client.async_get_uk_tracking_code = AsyncMock()
+    coordinator = DpdCoordinator(hass, client, _mock_entry())
+    coordinator._uk_tracking_cache = {"01ABC": "01ABC*999"}
+
+    await coordinator._enrich_uk_tracking_cache(
+        [shipment_sample("PARCEL_OUT_FOR_DELIVERY", parcel_number="01ABC")]
+    )
+
+    client.async_get_uk_tracking_code.assert_not_called()
+    assert coordinator._uk_tracking_cache["01ABC"] == "01ABC*999"
+
+
+async def test_async_update_data_only_enriches_uk_tracking_for_uk_bu(hass):
+    client = MagicMock()
+    client.bu = "DPD-NL"
+    client.async_get_parcel_detail = AsyncMock(return_value=None)
+    client.async_get_uk_tracking_code = AsyncMock()
+    client.async_get_parcels = AsyncMock(return_value={
+        "incomingShipments": [shipment_sample("ORDER_CREATED", parcel_number="A")],
+        "sendingShipments": [],
+    })
+    coordinator = DpdCoordinator(hass, client, _mock_entry())
+
+    await coordinator._async_update_data()
+
+    client.async_get_uk_tracking_code.assert_not_called()
+
+
+async def test_async_update_data_resolves_uk_tracking_url_for_uk_bu(hass):
+    client = MagicMock()
+    client.bu = "DPD-UK"
+    client.async_get_parcel_detail = AsyncMock(return_value=None)
+    client.async_get_uk_tracking_code = AsyncMock(
+        return_value="01234567890123*99999"
+    )
+    client.async_get_parcels = AsyncMock(return_value={
+        "incomingShipments": [
+            shipment_sample("ORDER_CREATED", parcel_number="01234567890123")
+        ],
+        "sendingShipments": [],
+    })
+    coordinator = DpdCoordinator(hass, client, _mock_entry())
+
+    result = await coordinator._async_update_data()
+
+    client.async_get_uk_tracking_code.assert_awaited_once_with("01234567890123")
+    assert result["incoming_active"][0]["url"] == (
+        "https://track.dpd.co.uk/parcels/01234567890123*99999"
+    )
+
+
+# ---------------------------------------------------------------------------
 # map_parcel_status
 # ---------------------------------------------------------------------------
 
@@ -621,6 +708,15 @@ def test_tracking_url_uses_override_for_non_dpd_prefixed_brands():
     )
 
 
+def test_tracking_url_uses_nl_interim_override_for_uk():
+    """DPD-UK has no confirmed tracking link yet (see discussions/14) — it
+    falls back to the confirmed-working NL page rather than the unconfirmed
+    default-derived /uk/ segment, which public evidence says doesn't exist."""
+    assert _tracking_url({"parcelNumber": "01ABC"}, "DPD-UK") == (
+        "https://www.dpdgroup.com/nl/mydpd/my-parcels/search?parcelNumber=01ABC"
+    )
+
+
 def test_tracking_url_returns_none_without_parcel_number():
     assert _tracking_url({}) is None
     assert _tracking_url({"parcelNumber": ""}) is None
@@ -674,6 +770,26 @@ def test_normalize_url_country_segment_follows_bu():
     raw = shipment_sample("PARCEL_OUT_FOR_DELIVERY", parcel_number="01XYZ")
     normalized = normalize_parcel(raw, bu="DPD-DE")
     assert normalized["url"].startswith("https://www.dpdgroup.com/de/mydpd/")
+
+
+def test_normalize_url_uses_uk_tracking_code_when_resolved():
+    raw = shipment_sample("PARCEL_OUT_FOR_DELIVERY", parcel_number="01XYZ")
+    normalized = normalize_parcel(
+        raw, bu="DPD-UK", uk_tracking_code="01234567890123*99999"
+    )
+    assert normalized["url"] == (
+        "https://track.dpd.co.uk/parcels/01234567890123*99999"
+    )
+
+
+def test_normalize_url_falls_back_to_nl_when_uk_code_unresolved():
+    """No live track.dpd.co.uk match yet (or the lookup failed) — the NL
+    myDPD page (BU_COUNTRY_OVERRIDES["DPD-UK"]) is the deliberate fallback."""
+    raw = shipment_sample("PARCEL_OUT_FOR_DELIVERY", parcel_number="01XYZ")
+    normalized = normalize_parcel(raw, bu="DPD-UK", uk_tracking_code=None)
+    assert normalized["url"] == (
+        "https://www.dpdgroup.com/nl/mydpd/my-parcels/search?parcelNumber=01XYZ"
+    )
 
 
 def test_normalize_carries_receiver_when_provided():

@@ -21,6 +21,7 @@ from .const import (
     DEFAULT_DELIVERED_FILTER_AMOUNT,
     DEFAULT_DELIVERED_FILTER_TYPE,
     DELIVERED_DESCRIPTION,
+    DPD_UK_TRACKING_URL,
     HISTORY_MAX_EVENTS,
     KNOWN_DESCRIPTIONS,
     STATUS_AT_DELIVERY_CENTER,
@@ -312,6 +313,7 @@ def normalize_parcel(
     dimensions: dict | None = None,
     history: list[dict] | None = None,
     bu: str = DEFAULT_BU,
+    uk_tracking_code: str | None = None,
 ) -> dict:
     """Return a carrier-agnostic parcel dict with the DPD payload under ``raw``.
 
@@ -339,6 +341,12 @@ def normalize_parcel(
 
     ``bu`` is the account's business unit (e.g. ``DPD-DE``), used only to
     build the country segment of the tracking URL.
+
+    ``uk_tracking_code`` is DPD-UK's own ``track.dpd.co.uk`` parcelCode,
+    resolved and cached by the coordinator via a separate keyless lookup
+    (:meth:`DpdApiClient.async_get_uk_tracking_code`) — when present it wins
+    over :func:`_tracking_url`'s NL-page fallback. ``None`` for every other
+    BU, and for a UK parcel the lookup hasn't resolved (yet, or ever).
     """
     description = _description(parcel)
     delivered = description == DELIVERED_DESCRIPTION
@@ -366,7 +374,11 @@ def normalize_parcel(
         "planned_to": planned_to,
         "pickup": is_pickup,
         "pickup_point": None,
-        "url": _tracking_url(parcel, bu),
+        "url": (
+            f"{DPD_UK_TRACKING_URL}/{uk_tracking_code}"
+            if uk_tracking_code
+            else _tracking_url(parcel, bu)
+        ),
         "weight": weight,
         "dimensions": dimensions,
         "history": history,

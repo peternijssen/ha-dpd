@@ -68,6 +68,17 @@ DPD_PARCEL_DETAIL_URL = f"{DPD_BASE_URL}/v10/parcels/details"
 DPD_FMP_AUTHENTICATE_URL = f"{DPD_BASE_URL}/fmp/authenticate"
 DPD_FMP_SHIPMENT_URL = f"{DPD_BASE_URL}/v3/fmp/shipment"
 
+# DPD UK's own public web tracker (track.dpd.co.uk) — an entirely separate,
+# keyless host from the myDPD backend above. Confirmed live (2026-08-17,
+# static read of the tracker's own React bundle + a live capture): GET
+# /v1/reference with a bare parcelNumber (no auth, and the postcode param is
+# not actually checked at this step) returns a ``data[0].parcelCode`` in the
+# shape ``<14-digit-number>*<sequence>`` — the sequence is DPD-assigned, not
+# a postcode transform. That code is what ``track.dpd.co.uk/parcels/<code>``
+# expects. See DpdApiClient.async_get_uk_tracking_code.
+DPD_UK_REFERENCE_URL = "https://apis.track.dpd.co.uk/v1/reference"
+DPD_UK_TRACKING_URL = "https://track.dpd.co.uk/parcels"
+
 # myDPD Mobile App client credentials (base64 of "<client_id>:<client_secret>"),
 # fetched from DPD's Firebase Remote Config and hardcoded in the mobile app.
 DPD_BASIC_TOKEN = (
@@ -94,15 +105,34 @@ BUSINESS_UNITS = [
     {"value": "CHR-PT", "label": "Portugal"},
     {"value": "DPD-SK", "label": "Slovakia"},
     {"value": "DPD-SI", "label": "Slovenia"},
+    {"value": "DPD-UK", "label": "United Kingdom"},
 ]
 
 DEFAULT_BU = "DPD-NL"
 
+# ``DPD-UK`` has no real business-unit code of its own on the shared myDPD
+# backend (confirmed absent from the myDPD app's own BU list, see
+# carrier-research/dpd/dpd-log.md 2026-08-11) — but a UK account was
+# confirmed (2026-08-17, github.com/ha-parcel-integrations/.github/
+# discussions/14) to log in and list its own parcels through the plain
+# DPD-NL flow. `bu` sent to Keycloak/consignee-sso/parcels/detail is
+# remapped through this table before use; `DpdApiClient.bu` (config,
+# unique_id, tracking-url derivation) keeps the configured value.
+BU_API_OVERRIDES = {
+    "DPD-UK": "DPD-NL",
+}
+
 # Country segment of the tracking URL is normally derived from the BU
 # (``DPD-DE`` -> ``de``, see `_tracking_url`), but a few acquired brands
 # on the shared myDPD backend don't follow the `DPD-<CC>` shape.
+# ``DPD-UK`` -> ``nl`` is the deliberate fallback used only when the live
+# UK tracking-code lookup (DPD_UK_REFERENCE_URL, see parcels.py/coordinator.py)
+# fails or hasn't resolved yet for a barcode — not a placeholder. Confirmed
+# (2026-08-17) reachable and shows the account's own parcels even though it's
+# the NL-branded page.
 BU_COUNTRY_OVERRIDES = {
     "CHR-PT": "pt",
+    "DPD-UK": "nl",
 }
 
 # BUs whose tracking page isn't dpdgroup.com/<country>/mydpd/my-parcels/search
