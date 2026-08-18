@@ -1,12 +1,15 @@
 """DPD Germany: derivation-first status map, ``normalize_parcel_de``, warnings.
 
-No DE response has ever been seen on the wire, so every mapping below is
-reconstructed from a static APK teardown. The status map is
-derivation-first, not enum-first: the ``StatusID`` string vocabulary has no
-closed enum, but the structural fields (``Delivered``, ``ParcelFlowTypeID``,
-``DeliveryParcelShop.ParcelStatus``, ``StatusInfoContainer``) can be
-trusted. The WARNING helpers here are how the vocabulary gets completed
-once a real account is polled.
+Built from a static APK teardown; the first real populated account (two
+delivered parcels, 2026-08-18) confirmed the status map and the
+``StatusDate``/weight/dimension shapes below — see ``carrier-research``'s
+``dpd-de.md`` Log for the capture. Everything the capture didn't exercise
+(in-transit ``StatusID`` values, non-DE-kg weight, an unmeasured parcel with
+no ``…ByCustomer`` fallback either) is still derivation-first: the
+``StatusID`` string vocabulary has no closed enum, but the structural fields
+(``Delivered``, ``ParcelFlowTypeID``, ``DeliveryParcelShop.ParcelStatus``,
+``StatusInfoContainer``) can be trusted. The WARNING helpers here are how the
+vocabulary gets completed as more real accounts are polled.
 
 The SOAP transport, ``KeyPhase`` signing and session lifecycle live in
 ``.session`` — this module never touches the wire itself.
@@ -16,11 +19,18 @@ from __future__ import annotations
 import logging
 from datetime import datetime, timezone
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from ...const import HISTORY_MAX_EVENTS, ParcelStatus
+from ..general import _augment_dimensions
 from .session import DpdApiError, DpdAuthError, DpdDeSession, as_list
 
 _LOGGER = logging.getLogger(__name__)
+
+# StatusDate/ScanDate+Time are Germany-local, confirmed 2026-08-18 by a real
+# capture — DPD DE has no other market, so Europe/Berlin is a safe constant
+# rather than a per-parcel derivation.
+_DE_TZ = ZoneInfo("Europe/Berlin")
 
 _NEW_ISSUE_URL = (
     "https://github.com/ha-parcel-integrations/ha-dpd/issues/new"
@@ -211,14 +221,20 @@ def _warn_scan_timestamp_format(value: str) -> None:
 
 
 def _warn_weight_units(raw_weight: Any, raw_weight_text: Any) -> None:
+    """One-shot: no unit is declared for ``OrderInfo.Weight`` in the schema.
+
+    Mapped as kilograms by inferred magnitude (comma-decimal values like
+    ``5,30``/``7,06`` from the 2026-08-18 capture — matching the general/NL
+    path's native kg unit for the same carrier), not an API-declared unit.
+    """
     global _weight_units_warned
     if _weight_units_warned:
         return
     _weight_units_warned = True
     _LOGGER.warning(
-        "DPD Germany returned a weight value for the first time — no unit "
-        "is declared, so it is not mapped yet. Please tell us what the app "
-        "showed for this parcel. Open an issue: %s\n"
+        "DPD Germany returned a weight value — mapped as kilograms by "
+        "inferred magnitude, not an API-declared unit. Please confirm this "
+        "matches what the app showed for this parcel. Open an issue: %s\n"
         "  OrderInfo.Weight=%r WeightText=%r",
         _NEW_ISSUE_URL,
         raw_weight,
@@ -227,14 +243,20 @@ def _warn_weight_units(raw_weight: Any, raw_weight_text: Any) -> None:
 
 
 def _warn_dimension_units(length: Any, width: Any, height: Any) -> None:
+    """One-shot: no unit is declared for ``OrderInfo.Length/Width/Height``.
+
+    Mapped as millimetres by inferred magnitude (the 2026-08-18 capture's
+    ``380/295/225`` reads as a 38x29.5x22.5cm parcel, not 3.8m) — unlike the
+    general/NL path, which is already centimetres.
+    """
     global _dimension_units_warned
     if _dimension_units_warned:
         return
     _dimension_units_warned = True
     _LOGGER.warning(
-        "DPD Germany returned dimensions for the first time — no unit is "
-        "declared, so they are not mapped yet. Please tell us what the app "
-        "showed for this parcel. Open an issue: %s\n"
+        "DPD Germany returned dimensions — mapped as millimetres by "
+        "inferred magnitude, not an API-declared unit. Please confirm this "
+        "matches what the app showed for this parcel. Open an issue: %s\n"
         "  OrderInfo.Length=%r Width=%r Height=%r",
         _NEW_ISSUE_URL,
         length,
@@ -388,6 +410,25 @@ def _parse_de_datetime(value: str | None, warn_fn) -> str | None:
     return dt.isoformat()
 
 
+def _parse_de_status_date(value: str | None, warn_fn) -> str | None:
+    """Parse a ``StatusDate``-shaped string — ``DD.MM.YYYY, HH:MM``, Europe/Berlin local.
+
+    Confirmed 2026-08-18 by the first real captured parcels: this shape is
+    *not* ISO 8601 the way ``EstimatedDeliveryDateTime{From,To}`` is, so
+    :func:`_parse_de_datetime` always failed on it. Used for
+    ``LastStatusInfo.StatusDate`` and each ``StatusInfoContainer`` slot's own
+    ``StatusDate`` — both confirmed the same shape in that capture.
+    """
+    if not value:
+        return None
+    try:
+        dt = datetime.strptime(str(value), "%d.%m.%Y, %H:%M")
+    except ValueError:
+        warn_fn(str(value))
+        return None
+    return dt.replace(tzinfo=_DE_TZ).isoformat()
+
+
 def _planned_window(raw: dict) -> tuple[str | None, str | None]:
     """``OrderInfo.EstimatedDeliveryDateTime{From,To}``, gated + redirect-aware."""
     order = raw.get("OrderInfo") or {}
@@ -420,27 +461,83 @@ def _pickup(raw: dict) -> tuple[bool, dict | None]:
     return is_pickup, pickup_point
 
 
-def _weight_and_dimensions(raw: dict) -> None:
-    """Fire the weight/dimension unit warnings — both fields ship ``None`` regardless."""
+def _parse_de_weight(raw: dict) -> float | None:
+    """``OrderInfo.Weight`` — comma-decimal, mapped as kilograms (inferred, see warning)."""
     order = raw.get("OrderInfo") or {}
     weight = order.get("Weight")
     weight_text = raw.get("WeightText")
-    if weight or weight_text:
-        _warn_weight_units(weight, weight_text)
-    length = order.get("Length")
-    width = order.get("Width")
-    height = order.get("Height")
-    if any((length, width, height)):
-        _warn_dimension_units(length, width, height)
+    if not weight and not weight_text:
+        return None
+    _warn_weight_units(weight, weight_text)
+    return _to_float(weight)
+
+
+def _to_float(value: Any) -> float | None:
+    """Best-effort numeric parse — comma or dot decimal, ``None`` on failure."""
+    if value is None:
+        return None
+    try:
+        return float(str(value).replace(",", "."))
+    except ValueError:
+        return None
+
+
+def _parse_de_dimensions(raw: dict) -> dict | None:
+    """``OrderInfo.Length/Width/Height``, mm, with a ``…ByCustomer`` fallback.
+
+    The 2026-08-18 capture had one parcel with DPD's own measurement
+    populated and ``…ByCustomer`` zeroed, and a second the other way round
+    (DPD hadn't measured it, only the sender's declared size was present) —
+    so both sources are real, not redundant. Values are parsed to ``float``
+    *before* the zero-check — DPD ships the unmeasured triple as the string
+    ``"0"``, which is truthy, so a bare presence check would never fall
+    through to ``…ByCustomer``. Converted to the canonical centimetres
+    (millimetres here, unlike the general/NL path's native cm — see the
+    warning below).
+    """
+    order = raw.get("OrderInfo") or {}
+    length = _to_float(order.get("Length"))
+    width = _to_float(order.get("Width"))
+    height = _to_float(order.get("Height"))
+    if not any((length, width, height)):
+        length = _to_float(order.get("LengthByCustomer"))
+        width = _to_float(order.get("WidthByCustomer"))
+        height = _to_float(order.get("HeightByCustomer"))
+    if not any((length, width, height)):
+        return None
+    _warn_dimension_units(length, width, height)
+    return _augment_dimensions(
+        {
+            "length": (length or 0.0) / 10,
+            "width": (width or 0.0) / 10,
+            "height": (height or 0.0) / 10,
+        }
+    )
+
+
+def _delivered_at(raw: dict, *, delivered: bool, status_date: str | None) -> str | None:
+    """Return the real delivery timestamp — ``LastStatusInfo.StatusDate``, not ``DeliveryDateTime``.
+
+    ``DeliveryDateTime`` (``"18.08."`` in the 2026-08-18 capture — day.month
+    only, no year, no time) never carries a usable instant; kept as a
+    fallback in case some account ever returns something ISO-shaped.
+    """
+    if not delivered:
+        return None
+    return status_date or _parse_de_datetime(
+        raw.get("DeliveryDateTime"), _warn_delivered_at_format
+    )
 
 
 def normalize_parcel_de(raw: dict, *, history: list[dict] | None = None) -> dict:
     """Return a carrier-agnostic parcel dict for a DE ``TrackingDataType``.
 
-    ``weight``/``dimensions``/``url`` ship ``None`` — no unit is declared
-    for the first two, and no tracking-page URL exists for this surface.
+    ``url`` ships ``None`` — no tracking-page URL exists for this surface.
     ``sender`` is ``None`` for every incoming parcel — DE exposes the
-    consignee side, not the shipper.
+    consignee side, not the shipper. ``weight``/``dimensions`` are
+    best-effort: DPD DE declares no unit for either field, so the mapping is
+    an inferred-magnitude guess (see the one-shot warnings), not a confirmed
+    API contract.
     """
     _warn_unexpected_top_level_keys(raw)
 
@@ -449,16 +546,12 @@ def normalize_parcel_de(raw: dict, *, history: list[dict] | None = None) -> dict
         _warn_data_view_status(data_view_status)
 
     last_status = raw.get("LastStatusInfo") or {}
-    status_date = last_status.get("StatusDate")
-    if status_date:
-        _parse_de_datetime(status_date, _warn_status_date_format)
-
-    _weight_and_dimensions(raw)
+    status_date = _parse_de_status_date(
+        last_status.get("StatusDate"), _warn_status_date_format
+    )
 
     delivered = raw.get("Delivered") is True
-    delivered_at = _parse_de_datetime(
-        raw.get("DeliveryDateTime"), _warn_delivered_at_format
-    )
+    delivered_at = _delivered_at(raw, delivered=delivered, status_date=status_date)
     planned_from, planned_to = (None, None) if delivered else _planned_window(raw)
     is_pickup, pickup_point = _pickup(raw)
 
@@ -476,16 +569,51 @@ def normalize_parcel_de(raw: dict, *, history: list[dict] | None = None) -> dict
         "pickup": is_pickup,
         "pickup_point": pickup_point,
         "url": _TRACKING_URL,
-        "weight": None,
-        "dimensions": None,
+        "weight": _parse_de_weight(raw),
+        "dimensions": _parse_de_dimensions(raw),
         "history": history,
         "raw": raw,
     }
 
 
 # ---------------------------------------------------------------------------
-# Inbox history — getTrackingScanList, opt-in, active parcels only
+# Inbox history — getTrackingScanList (opt-in, active parcels only) with a
+# StatusInfoContainer-derived fallback (free — same response as status)
 # ---------------------------------------------------------------------------
+
+
+def _history_from_container(raw: dict) -> list[dict] | None:
+    """Build ``history`` from the inbox's own ``StatusInfoContainer`` — no extra call.
+
+    Five dated stages already present in the same ``getSessionFullState``
+    response used for status derivation (confirmed shape 2026-08-18: each
+    reached slot carries its own ``StatusID``/``StatusText_Mobile``/
+    ``StatusDate``) — unlike ``getTrackingScanList``'s events, coarser
+    (5 stages, not every scan) but with a real mapped ``status`` and zero
+    marginal cost. Used only as a fallback when the richer scan-list history
+    wasn't fetched (see ``_resolve_history_de``) — a real fetch always wins.
+    """
+    container = raw.get("StatusInfoContainer") or {}
+    entries: list[dict] = []
+    for slot, status in reversed(_CONTAINER_SLOTS):
+        slot_info = container.get(slot)
+        if not isinstance(slot_info, dict):
+            continue
+        if slot_info.get("StatusReached") not in (True, "true", "1", 1):
+            continue
+        timestamp = _parse_de_status_date(
+            slot_info.get("StatusDate"), _warn_status_date_format
+        )
+        if not timestamp:
+            continue
+        entries.append(
+            {
+                "timestamp": timestamp,
+                "status": status,
+                "raw_status": slot_info.get("StatusText_Mobile") or slot_info.get("StatusID"),
+            }
+        )
+    return entries or None
 
 
 def _build_history_de(
@@ -547,6 +675,23 @@ async def _async_fetch_history_de(
     return _build_history_de(scans)
 
 
+def _resolve_history_de(
+    raw: dict, history_by_barcode: dict[str, list[dict] | None], *, include_history: bool
+) -> list[dict] | None:
+    """Return the scan-list fetch when one was made, else the free container fallback.
+
+    ``None`` outright when ``include_history`` is off — the container
+    fallback is free, but the option still gates whether ``history`` is
+    exposed at all, matching every other carrier's opt-in contract.
+    """
+    if not include_history:
+        return None
+    fetched = history_by_barcode.get(raw.get("ParcelNo"))
+    if fetched is not None:
+        return fetched
+    return _history_from_container(raw)
+
+
 async def async_get_all_parcels_de(
     de_session: DpdDeSession, *, include_history: bool = False
 ) -> tuple[list[dict], list[dict]]:
@@ -584,12 +729,22 @@ async def async_get_all_parcels_de(
             )
 
     incoming = [
-        normalize_parcel_de(raw, history=history_by_barcode.get(raw.get("ParcelNo")))
+        normalize_parcel_de(
+            raw,
+            history=_resolve_history_de(
+                raw, history_by_barcode, include_history=include_history
+            ),
+        )
         for raw, direction in tagged
         if direction == "incoming"
     ]
     outgoing = [
-        normalize_parcel_de(raw, history=history_by_barcode.get(raw.get("ParcelNo")))
+        normalize_parcel_de(
+            raw,
+            history=_resolve_history_de(
+                raw, history_by_barcode, include_history=include_history
+            ),
+        )
         for raw, direction in tagged
         if direction == "outgoing"
     ]

@@ -8,8 +8,14 @@ import pytest
 from custom_components.dpd.const import DpdApiError, DpdAuthError, ParcelStatus
 from custom_components.dpd.countries.de import (
     _build_history_de,
+    _delivered_at,
     _describe_format_shape,
+    _history_from_container,
+    _parse_de_dimensions,
+    _parse_de_status_date,
+    _parse_de_weight,
     _planned_window,
+    _resolve_history_de,
     _warn_data_view_status,
     _warn_delivered_at_format,
     _warn_dimension_units,
@@ -177,6 +183,116 @@ def test_planned_window_redirect_ignored_without_date_changed():
 
 
 # ---------------------------------------------------------------------------
+# _parse_de_status_date — real ``DD.MM.YYYY, HH:MM`` shape, confirmed 2026-08-18
+# ---------------------------------------------------------------------------
+
+
+def test_parse_de_status_date_parses_real_shape():
+    result = _parse_de_status_date("18.08.2026, 11:16", _warn_status_date_format)
+    assert result == "2026-08-18T11:16:00+02:00"
+
+
+def test_parse_de_status_date_none_on_empty():
+    assert _parse_de_status_date(None, _warn_status_date_format) is None
+    assert _parse_de_status_date("", _warn_status_date_format) is None
+
+
+def test_parse_de_status_date_warns_and_returns_none_on_bad_shape(monkeypatch):
+    import custom_components.dpd.countries.de as de_mod
+
+    warned = MagicMock()
+    monkeypatch.setattr(de_mod, "_warn_status_date_format", warned)
+    assert _parse_de_status_date("not-a-date", warned) is None
+    warned.assert_called_once_with("not-a-date")
+
+
+def test_parse_de_status_date_rejects_iso_shape():
+    """The old (wrong) assumption — ISO 8601 — must not silently parse."""
+    warned = MagicMock()
+    assert _parse_de_status_date("2026-08-18T11:16:00", warned) is None
+    warned.assert_called_once()
+
+
+# ---------------------------------------------------------------------------
+# _parse_de_weight / _parse_de_dimensions — inferred kg / mm
+# ---------------------------------------------------------------------------
+
+
+def test_parse_de_weight_parses_comma_decimal_as_kg():
+    raw = {"OrderInfo": {"Weight": "5,30"}}
+    assert _parse_de_weight(raw) == pytest.approx(5.30)
+
+
+def test_parse_de_weight_none_when_absent():
+    assert _parse_de_weight({"OrderInfo": {}}) is None
+    assert _parse_de_weight({}) is None
+
+
+def test_parse_de_weight_none_on_unparseable_value(monkeypatch):
+    import custom_components.dpd.countries.de as de_mod
+
+    monkeypatch.setattr(de_mod, "_warn_weight_units", MagicMock())
+    assert _parse_de_weight({"OrderInfo": {"Weight": "not-a-number"}}) is None
+
+
+def test_parse_de_dimensions_converts_mm_to_cm():
+    raw = {"OrderInfo": {"Length": "380", "Width": "295", "Height": "225"}}
+    dims = _parse_de_dimensions(raw)
+    assert dims == {
+        "length": 38.0,
+        "width": 29.5,
+        "height": 22.5,
+        "text": "38 x 30 x 22 cm",
+    }
+
+
+def test_parse_de_dimensions_falls_back_to_by_customer_when_unmeasured():
+    raw = {
+        "OrderInfo": {
+            "Length": "0",
+            "Width": "0",
+            "Height": "0",
+            "LengthByCustomer": "320",
+            "WidthByCustomer": "240",
+            "HeightByCustomer": "210",
+        }
+    }
+    dims = _parse_de_dimensions(raw)
+    assert dims["length"] == pytest.approx(32.0)
+    assert dims["width"] == pytest.approx(24.0)
+    assert dims["height"] == pytest.approx(21.0)
+
+
+def test_parse_de_dimensions_none_when_neither_source_present():
+    assert _parse_de_dimensions({"OrderInfo": {}}) is None
+
+
+# ---------------------------------------------------------------------------
+# _delivered_at — StatusDate wins over DeliveryDateTime
+# ---------------------------------------------------------------------------
+
+
+def test_delivered_at_none_when_not_delivered():
+    assert _delivered_at({}, delivered=False, status_date="2026-08-18T11:16:00+02:00") is None
+
+
+def test_delivered_at_prefers_status_date():
+    result = _delivered_at(
+        {"DeliveryDateTime": "18.08."},
+        delivered=True,
+        status_date="2026-08-18T11:16:00+02:00",
+    )
+    assert result == "2026-08-18T11:16:00+02:00"
+
+
+def test_delivered_at_falls_back_to_delivery_date_time_when_no_status_date():
+    result = _delivered_at(
+        {"DeliveryDateTime": "2026-08-17T14:00:00"}, delivered=True, status_date=None
+    )
+    assert result is not None
+
+
+# ---------------------------------------------------------------------------
 # normalize_parcel_de
 # ---------------------------------------------------------------------------
 
@@ -243,6 +359,27 @@ def test_normalize_parcel_de_delivered_at_and_pickup():
     # Delivered parcels never carry a planned window.
     assert parcel["planned_from"] is None
     assert parcel["planned_to"] is None
+
+
+def test_normalize_parcel_de_delivered_at_prefers_status_date_over_delivery_date_time():
+    """Real capture shape (2026-08-18): DeliveryDateTime is a useless
+    ``"18.08."`` day.month string; StatusDate carries the real instant."""
+    raw = _raw_parcel(
+        Delivered=True,
+        DeliveryDateTime="18.08.",
+        LastStatusInfo={"StatusID": "DELIVERED", "StatusDate": "18.08.2026, 11:16"},
+    )
+    parcel = normalize_parcel_de(raw)
+    assert parcel["delivered_at"] == "2026-08-18T11:16:00+02:00"
+
+
+def test_normalize_parcel_de_weight_and_dimensions_from_real_shape():
+    raw = _raw_parcel(
+        OrderInfo={"Weight": "5,30", "Length": "380", "Width": "295", "Height": "225"}
+    )
+    parcel = normalize_parcel_de(raw)
+    assert parcel["weight"] == pytest.approx(5.30)
+    assert parcel["dimensions"]["length"] == pytest.approx(38.0)
 
 
 def test_normalize_parcel_de_warns_on_unexpected_top_level_key(monkeypatch):
@@ -333,6 +470,106 @@ def test_build_history_de_warns_on_bad_timestamp_format(monkeypatch):
 
 
 # ---------------------------------------------------------------------------
+# _history_from_container / _resolve_history_de
+# ---------------------------------------------------------------------------
+
+
+def test_history_from_container_builds_oldest_to_newest():
+    raw = {
+        "StatusInfoContainer": {
+            "Start": {
+                "StatusReached": True,
+                "StatusID": "ACCEPTED",
+                "StatusText_Mobile": "Paketinfo an DPD übergeben",
+                "StatusDate": "14.08.2026, 09:15",
+            },
+            "OnTheRoad": {
+                "StatusReached": True,
+                "StatusID": "ON_THE_ROAD",
+                "StatusDate": "14.08.2026, 20:47",
+            },
+            "Delivered": {
+                "StatusReached": True,
+                "StatusID": "DELIVERED",
+                "StatusText_Mobile": "Paket zugestellt",
+                "StatusDate": "18.08.2026, 11:16",
+            },
+        }
+    }
+    history = _history_from_container(raw)
+    assert [e["status"] for e in history] == [
+        ParcelStatus.REGISTERED,
+        ParcelStatus.IN_TRANSIT,
+        ParcelStatus.DELIVERED,
+    ]
+    assert history[0]["raw_status"] == "Paketinfo an DPD übergeben"
+    assert history[-1]["timestamp"] == "2026-08-18T11:16:00+02:00"
+
+
+def test_history_from_container_skips_unreached_and_undated_slots():
+    raw = {
+        "StatusInfoContainer": {
+            "Start": {"StatusReached": True, "StatusDate": "14.08.2026, 09:15"},
+            "OnTheRoad": {"StatusReached": False},
+            "Delivered": {"StatusReached": True},  # no StatusDate — unparseable
+        }
+    }
+    history = _history_from_container(raw)
+    assert len(history) == 1
+    assert history[0]["status"] == ParcelStatus.REGISTERED
+
+
+def test_history_from_container_none_when_no_slot_reached():
+    assert _history_from_container({}) is None
+    assert _history_from_container({"StatusInfoContainer": {}}) is None
+
+
+def test_resolve_history_de_none_when_include_history_off():
+    raw = {"ParcelNo": "X", "StatusInfoContainer": {}}
+    assert _resolve_history_de(raw, {}, include_history=False) is None
+
+
+def test_resolve_history_de_prefers_fetched_scan_list():
+    raw = {"ParcelNo": "X"}
+    fetched = [{"timestamp": "t", "status": ParcelStatus.UNKNOWN, "raw_status": None}]
+    result = _resolve_history_de(raw, {"X": fetched}, include_history=True)
+    assert result is fetched
+
+
+def test_resolve_history_de_falls_back_to_container_when_not_fetched():
+    raw = {
+        "ParcelNo": "DONE-1",
+        "Delivered": True,
+        "StatusInfoContainer": {
+            "Delivered": {
+                "StatusReached": True,
+                "StatusID": "DELIVERED",
+                "StatusDate": "18.08.2026, 11:16",
+            }
+        },
+    }
+    # DONE-1 was never looked up (delivered parcels are skipped by the
+    # scan-list fetch loop), so the dict has no entry for it at all.
+    result = _resolve_history_de(raw, {}, include_history=True)
+    assert result == [
+        {
+            "timestamp": "2026-08-18T11:16:00+02:00",
+            "status": ParcelStatus.DELIVERED,
+            "raw_status": "DELIVERED",
+        }
+    ]
+
+
+def test_resolve_history_de_empty_fetched_list_is_not_overridden():
+    """An explicit ``[]`` (scan list fetched, genuinely empty) must win over
+    the container fallback — it means "we checked, there's nothing", not
+    "we didn't check"."""
+    raw = {"ParcelNo": "X", "StatusInfoContainer": {"Start": {"StatusReached": True}}}
+    result = _resolve_history_de(raw, {"X": []}, include_history=True)
+    assert result == []
+
+
+# ---------------------------------------------------------------------------
 # async_get_all_parcels_de
 # ---------------------------------------------------------------------------
 
@@ -397,6 +634,41 @@ async def test_async_get_all_parcels_de_fetches_history_for_active_parcels_only(
     de_session.async_call.assert_awaited_once()
     assert incoming[0]["history"] == []
     assert incoming[1]["history"] is None
+
+
+@pytest.mark.asyncio
+async def test_async_get_all_parcels_de_delivered_parcel_gets_container_history():
+    """A delivered parcel never gets a scan-list fetch, but still gets a free
+    history from its own ``StatusInfoContainer`` when ``include_history`` is on."""
+    de_session = MagicMock()
+    de_session.async_get_parcels = AsyncMock(
+        return_value={
+            "ReceiveTrackingDataList": {
+                "TrackingDataType": [
+                    _raw_parcel(
+                        ParcelNo="DONE-1",
+                        Delivered=True,
+                        StatusInfoContainer={
+                            "Delivered": {
+                                "StatusReached": True,
+                                "StatusID": "DELIVERED",
+                                "StatusDate": "18.08.2026, 11:16",
+                            }
+                        },
+                    )
+                ]
+            },
+        }
+    )
+    incoming, _outgoing = await async_get_all_parcels_de(de_session, include_history=True)
+    de_session.async_call.assert_not_called()
+    assert incoming[0]["history"] == [
+        {
+            "timestamp": "2026-08-18T11:16:00+02:00",
+            "status": ParcelStatus.DELIVERED,
+            "raw_status": "DELIVERED",
+        }
+    ]
 
 
 @pytest.mark.asyncio
@@ -548,7 +820,7 @@ def test_warn_weight_units_logs_once(caplog):
     with caplog.at_level("WARNING"):
         _warn_weight_units(1.5, "1.5 kg")
         _warn_weight_units(2.0, "2.0 kg")
-    assert sum("weight value for the first time" in r.message for r in caplog.records) == 1
+    assert sum("mapped as kilograms by inferred magnitude" in r.message for r in caplog.records) == 1
     de_mod._weight_units_warned = False
 
 
@@ -559,7 +831,7 @@ def test_warn_dimension_units_logs_once(caplog):
     with caplog.at_level("WARNING"):
         _warn_dimension_units(10, 5, 3)
         _warn_dimension_units(11, 6, 4)
-    assert sum("dimensions for the first time" in r.message for r in caplog.records) == 1
+    assert sum("mapped as millimetres by inferred magnitude" in r.message for r in caplog.records) == 1
     de_mod._dimension_units_warned = False
 
 
