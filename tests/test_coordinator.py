@@ -924,15 +924,17 @@ def test_capabilities_are_known_values():
     assert CAPABILITIES <= KNOWN_CAPABILITIES
 
 
-def test_capabilities_match_the_missing_pickup_point_gap():
+def test_capabilities_match_normalize_parcel():
     """CAPABILITIES must agree with test_normalize_returns_carrier_agnostic_keys
     and test_normalize_carries_weight_and_dimensions_when_provided — DPD's
-    detail call fills weight/dimensions/history/window, but never a named
-    pickup point."""
+    detail call fills weight/dimensions/history/window, and a ParcelShop
+    delivery's pickup point (repurposed from the detail call's
+    ``receiver.name``, confirmed 2026-08-20)."""
     assert CAPABILITIES == {
         "weight",
         "dimensions",
         "delivery_window",
+        "pickup_point",
         "url",
         "history",
     }
@@ -982,6 +984,26 @@ def test_normalize_marks_pickup_for_parcelshop_delivery():
     raw = shipment_sample("PARCEL_OUT_FOR_DELIVERY")
     raw["status"]["deliveryType"] = "PARCELSHOP"
     assert normalize_parcel(raw)["pickup"] is True
+
+
+def test_normalize_repurposes_receiver_as_pickup_point_for_parcelshop_delivery():
+    """DPD's detail endpoint puts the ParcelShop's own name in ``receiver.name``
+    for a PARCELSHOP delivery instead of a person (confirmed 2026-08-20, a real
+    AlzaBox pickup) — that value becomes ``pickup_point``, and ``receiver``
+    is left ``None`` rather than mislabelled as the recipient."""
+    raw = shipment_sample("PARCEL_OUT_FOR_DELIVERY")
+    raw["status"]["deliveryType"] = "PARCELSHOP"
+    normalized = normalize_parcel(raw, receiver="AlzaBox Jilove u Prahy Sokol")
+    assert normalized["pickup_point"] == "AlzaBox Jilove u Prahy Sokol"
+    assert normalized["receiver"] is None
+
+
+def test_normalize_carries_receiver_for_home_delivery():
+    raw = shipment_sample("PARCEL_OUT_FOR_DELIVERY")
+    raw["status"]["deliveryType"] = "HOME"
+    normalized = normalize_parcel(raw, receiver="Jane Doe")
+    assert normalized["receiver"] == "Jane Doe"
+    assert normalized["pickup_point"] is None
 
 
 def test_normalize_delivered_parcel_carries_delivered_at_not_planned_window():

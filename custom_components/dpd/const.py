@@ -53,10 +53,11 @@ KNOWN_CAPABILITIES = frozenset(
 # the comparison table on the docs site. Keep in lockstep with
 # normalize_parcel() in parcels.py: everything not listed here comes back as a
 # literal None there. DPD's per-parcel detail call fills weight, dimensions,
-# the FMP delivery window and opt-in history; only a named pickup point
-# (ParcelShop name/address) is still unconfirmed.
+# the FMP delivery window, opt-in history and — confirmed 2026-08-20 via a
+# real ParcelShop delivery — a pickup point name (repurposed from the detail
+# endpoint's ``receiver.name``, see normalize_parcel's docstring).
 CAPABILITIES = frozenset(
-    {"weight", "dimensions", "delivery_window", "url", "history"}
+    {"weight", "dimensions", "delivery_window", "pickup_point", "url", "history"}
 )
 
 POLL_INTERVAL = 900  # seconds (15 minutes) — legacy hard-coded fallback

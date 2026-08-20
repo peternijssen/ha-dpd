@@ -208,8 +208,21 @@ entry. Runtime-only; the tests don't catch a regression here.
   need updating on a new DPD lifecycle stage.
 - **ParcelShop sensors**: `DpdEnRouteToParcelShopSensor` counts `pickup` parcels
   with `status != at_pickup_point`; `DpdAwaitingPickupSensor` counts
-  `status == at_pickup_point` — confirm against a real parcelshop parcel if one
-  appears.
+  `status == at_pickup_point` — confirmed against a real DPD-CZ AlzaBox
+  parcel (2026-08-20, maintainer-supplied diagnostics), both counted and
+  transitioned correctly end to end (`in_transit` → `at_pickup_point` →
+  `delivered`).
+- **`pickup_point` is populated by repurposing the detail call's
+  `receiver.name`.** Confirmed live (2026-08-20, the same AlzaBox capture):
+  for a `PARCELSHOP` delivery, DPD's per-parcel detail endpoint puts the
+  ParcelShop's own name (branch + town) in `receiver.name` instead of a
+  person — there is no separate field carrying the actual recipient in that
+  case. `normalize_parcel` in `countries/general/__init__.py` reads that as
+  `pickup_point` when `is_pickup` and leaves `receiver` `None` rather than
+  mislabel a shop name as the recipient; for a non-pickup delivery `receiver`
+  is unaffected. `CAPABILITIES` in `const.py` now includes `pickup_point`.
+  DE is untouched by this — `normalize_parcel_de` has its own, still-open
+  gap.
 
 **Detail cache & FMP (cost control)**
 - **`_detail_cache`** (keyed by barcode, integration-lifetime) lazily fills
@@ -256,8 +269,8 @@ entry. Runtime-only; the tests don't catch a regression here.
 ## Planned / skipped
 
 - **Planned (next major)**: exception translations (`UpdateFailed` f-strings →
-  `translation_key` + placeholders); populated `pickup_point` — blocked on DPD
-  exposing the ParcelShop name/address (needs a real parcelshop parcel).
+  `translation_key` + placeholders).
+- **Shipped (2026-08-20)**: `pickup_point` — see *Status & pickup* above.
 
 ## Running tests
 
