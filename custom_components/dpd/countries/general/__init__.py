@@ -679,12 +679,10 @@ def normalize_parcel(
     units (kg + cm) already match the canonical contract, so no
     conversion is needed here.
 
-    For a ParcelShop delivery (``deliveryType == "PARCELSHOP"``) DPD's detail
-    endpoint puts the ParcelShop's own name in ``receiver.name`` instead of a
-    person — confirmed live 2026-08-20 (a real AlzaBox pickup). There is no
-    separate field carrying an actual recipient name in that case, so
-    ``receiver`` is repurposed as ``pickup_point`` and left ``None`` rather
-    than mislabelling a shop name as the recipient.
+    For a ParcelShop delivery, DPD's detail endpoint returns the ParcelShop's
+    own name in ``receiver.name`` instead of a person, with no separate field
+    for the actual recipient — so that value becomes ``pickup_point`` instead,
+    and ``receiver`` is left ``None``.
 
     ``history`` is the optional per-parcel status timeline (opt-in option,
     default off → ``None``). It is also detail-endpoint sourced and stays

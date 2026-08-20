@@ -926,10 +926,7 @@ def test_capabilities_are_known_values():
 
 def test_capabilities_match_normalize_parcel():
     """CAPABILITIES must agree with test_normalize_returns_carrier_agnostic_keys
-    and test_normalize_carries_weight_and_dimensions_when_provided — DPD's
-    detail call fills weight/dimensions/history/window, and a ParcelShop
-    delivery's pickup point (repurposed from the detail call's
-    ``receiver.name``, confirmed 2026-08-20)."""
+    and test_normalize_carries_weight_and_dimensions_when_provided."""
     assert CAPABILITIES == {
         "weight",
         "dimensions",
@@ -987,10 +984,8 @@ def test_normalize_marks_pickup_for_parcelshop_delivery():
 
 
 def test_normalize_repurposes_receiver_as_pickup_point_for_parcelshop_delivery():
-    """DPD's detail endpoint puts the ParcelShop's own name in ``receiver.name``
-    for a PARCELSHOP delivery instead of a person (confirmed 2026-08-20, a real
-    AlzaBox pickup) — that value becomes ``pickup_point``, and ``receiver``
-    is left ``None`` rather than mislabelled as the recipient."""
+    """DPD's detail call returns the ParcelShop's name in receiver.name, not
+    a person, for a PARCELSHOP delivery — that becomes pickup_point instead."""
     raw = shipment_sample("PARCEL_OUT_FOR_DELIVERY")
     raw["status"]["deliveryType"] = "PARCELSHOP"
     normalized = normalize_parcel(raw, receiver="AlzaBox Jilove u Prahy Sokol")
