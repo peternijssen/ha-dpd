@@ -36,6 +36,3 @@ ENV/
 
 # OS
 .DS_Store
-
-# Claude Code (local)
-.claude/
