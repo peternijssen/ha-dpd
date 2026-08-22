@@ -17,7 +17,7 @@ you act in one of these areas:
 | consider "fixing" a lint/pattern the skill flags (poll interval, inline client) | *Deliberate skill divergences* — likely intentional, don't re-flag |
 | commit, bump, tag, release, or write release notes; add a feature without a test | *Workflow / Commits / Versioning / Testing* |
 
-**API mechanics live in `carrier-research/api/dpd/` (private research repo)** — the Keycloak
+**API mechanics live in `carrier-research/dpd/api/` (private research repo)** — the Keycloak
 auth flow (`auth.md`), the parcels/detail endpoints + status-description and 68-code
 GSMT event vocabulary (`parcels.md`), and the FMP delivery-window fetch (`fmp.md`).
 Do not duplicate them here.

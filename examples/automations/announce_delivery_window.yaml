@@ -2,7 +2,7 @@
 # hour before the planned_from timestamp. Uses the Next delivery sensor
 # directly instead of an event — on the day of delivery this is the
 # precise Follow My Parcel hour; otherwise it's midnight of the
-# planned date and you'll hear a less useful "om 00:00".
+# planned date and you'll hear a less useful "around 00:00".
 
 alias: "DPD: announce next delivery window"
 description: Speak the next delivery window an hour before the window opens.
@@ -21,5 +21,5 @@ actions:
     data:
       entity_id: media_player.living_room
       message: >-
-        DPD-pakket onderweg, verwacht rond
+        DPD parcel on the way, expected around
         {{ as_datetime(states('sensor.dpd_next_delivery')).strftime('%H:%M') }}.

@@ -4,7 +4,7 @@
 #
 # On the day of delivery the integration also fills in a precise hour
 # window via Follow My Parcel — the message includes the window when
-# available, otherwise just "vandaag".
+# available, otherwise just "today".
 
 alias: "DPD: parcel out for delivery"
 description: Notify when a DPD parcel goes out for delivery today.
@@ -20,14 +20,14 @@ triggers:
 actions:
   - action: notify.mobile_app
     data:
-      title: "Pakket onderweg vandaag"
+      title: "Parcel out for delivery today"
       message: >-
-        {{ trigger.event.data.sender or 'Onbekende afzender' }} – verwacht
+        {{ trigger.event.data.sender or 'Unknown sender' }} – expected
         {% if trigger.event.data.planned_from and trigger.event.data.planned_to %}
-        tussen {{ as_timestamp(trigger.event.data.planned_from) | timestamp_custom('%H:%M') }}
-        en {{ as_timestamp(trigger.event.data.planned_to) | timestamp_custom('%H:%M') }}
+        between {{ as_timestamp(trigger.event.data.planned_from) | timestamp_custom('%H:%M') }}
+        and {{ as_timestamp(trigger.event.data.planned_to) | timestamp_custom('%H:%M') }}
         {% else %}
-        vandaag
+        today
         {% endif %}
       data:
         clickAction: "{{ trigger.event.data.url }}"

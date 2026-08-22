@@ -8,10 +8,10 @@
 # that day it falls back to midnight of the planned delivery date.
 
 type: entities
-title: Eerstvolgende bezorging
+title: Next delivery
 entities:
   - entity: sensor.dpd_next_delivery
-    name: Verwacht
+    name: Expected
     secondary_info: last-updated
   - type: attribute
     entity: sensor.dpd_next_delivery
@@ -20,4 +20,4 @@ entities:
   - type: attribute
     entity: sensor.dpd_next_delivery
     attribute: sender
-    name: Afzender
+    name: Sender

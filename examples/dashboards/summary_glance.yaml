@@ -12,8 +12,8 @@ show_icon: true
 columns: 3
 entities:
   - entity: sensor.dpd_incoming_parcels
-    name: Onderweg
+    name: In transit
   - entity: sensor.dpd_en_route_to_parcel_shop
-    name: Naar PS
+    name: To PS
   - entity: sensor.dpd_delivered_parcels
     name: Recent

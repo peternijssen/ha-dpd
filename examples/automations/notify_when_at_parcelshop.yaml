@@ -23,9 +23,9 @@ conditions:
 actions:
   - action: notify.mobile_app
     data:
-      title: "Pakket naar ParcelShop"
+      title: "Parcel heading to ParcelShop"
       message: >-
-        {{ trigger.event.data.sender or 'Onbekende afzender' }} gaat naar
-        {{ trigger.event.data.pickup_point or 'een DPD ParcelShop' }}.
+        {{ trigger.event.data.sender or 'Unknown sender' }} is heading to
+        {{ trigger.event.data.pickup_point or 'a DPD ParcelShop' }}.
       data:
         clickAction: "{{ trigger.event.data.url }}"
