@@ -73,7 +73,9 @@ handling, and hardware-ID persistence: [.claude/rules/germany.md](.claude/rules/
 unmapped `raw_status` falls to `ParcelStatus.UNKNOWN` with a one-shot WARNING;
 `pickup_point` is populated by repurposing the detail call's `receiver.name`
 for `PARCELSHOP` deliveries (confirmed live 2026-08-20 against a real DPD-CZ
-AlzaBox parcel — DE has its own, still-open gap here). `_detail_cache` is
+AlzaBox parcel). DE derives the same string shape via `_address_name()` on
+`DeliveryParcelShop.ParcelShop` — not yet wire-confirmed on a real PUDO
+delivery, unlike the general path. `_detail_cache` is
 barcode-keyed and integration-lifetime (at most one detail call per parcel,
 retried only once status moves); FMP delivery-window fetch is best-effort.
 Outgoing parcels come from DPD's own `sendingShipments` split (no `isReturn`

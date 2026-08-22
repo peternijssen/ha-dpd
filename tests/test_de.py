@@ -355,7 +355,7 @@ def test_normalize_parcel_de_delivered_at_and_pickup():
     assert parcel["delivered"] is True
     assert parcel["delivered_at"] is not None
     assert parcel["pickup"] is True
-    assert parcel["pickup_point"] == {"Name": "Shop X"}
+    assert parcel["pickup_point"] == "Shop X"
     # Delivered parcels never carry a planned window.
     assert parcel["planned_from"] is None
     assert parcel["planned_to"] is None

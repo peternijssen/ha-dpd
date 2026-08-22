@@ -453,11 +453,11 @@ def _planned_window(raw: dict) -> tuple[str | None, str | None]:
     return planned_from, planned_to
 
 
-def _pickup(raw: dict) -> tuple[bool, dict | None]:
-    """``DeliveryParcelShop.isParcelShopDelivery`` / ``.ParcelShop`` — the full shop object."""
+def _pickup(raw: dict) -> tuple[bool, str | None]:
+    """``DeliveryParcelShop.isParcelShopDelivery`` / ``.ParcelShop.Name`` — a display name, matching the general path's string shape."""
     shop = raw.get("DeliveryParcelShop") or {}
     is_pickup = bool(shop.get("isParcelShopDelivery"))
-    pickup_point = shop.get("ParcelShop") if is_pickup else None
+    pickup_point = _address_name(shop.get("ParcelShop")) if is_pickup else None
     return is_pickup, pickup_point
 
 

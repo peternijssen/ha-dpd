@@ -30,8 +30,9 @@ paths:
   `pickup_point` when `is_pickup` and leaves `receiver` `None` rather than
   mislabel a shop name as the recipient; for a non-pickup delivery `receiver`
   is unaffected. `CAPABILITIES` in `const.py` now includes `pickup_point`.
-  DE is untouched by this — `normalize_parcel_de` has its own, still-open
-  gap.
+  `normalize_parcel_de` mirrors the same display-name shape via
+  `_address_name()` on `DeliveryParcelShop.ParcelShop` — not yet
+  wire-confirmed on a real PUDO delivery, unlike the general path.
 
 # Detail cache & FMP (cost control)
 
