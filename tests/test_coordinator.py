@@ -929,8 +929,8 @@ def test_capabilities_match_normalize_parcel():
     """CAPABILITIES_BY_VARIANT["Other"] must agree with
     test_normalize_returns_carrier_agnostic_keys and
     test_normalize_carries_weight_and_dimensions_when_provided — both exercise
-    the general (myDPD) normalize_parcel(), not DE's. See test_de.py for the
-    DE-side equivalent."""
+    the general (myDPD) normalize_parcel(), not DE's. See
+    countries/test_de.py for the DE-side equivalent."""
     assert CAPABILITIES_BY_VARIANT["Other"] == {
         "weight",
         "dimensions",
