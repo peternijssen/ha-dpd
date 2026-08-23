@@ -5,7 +5,12 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from custom_components.dpd.const import DpdApiError, DpdAuthError, ParcelStatus
+from custom_components.dpd.const import (
+    CAPABILITIES_BY_VARIANT,
+    DpdApiError,
+    DpdAuthError,
+    ParcelStatus,
+)
 from custom_components.dpd.countries.de import (
     _build_history_de,
     _delivered_at,
@@ -866,3 +871,17 @@ def test_warn_empty_inbox_once_logs_once(caplog):
         _warn_empty_inbox_once()
     assert sum("inbox is completely empty" in r.message for r in caplog.records) == 1
     de_mod._empty_inbox_warned = False
+
+
+def test_capabilities_match_normalize_parcel_de():
+    """CAPABILITIES_BY_VARIANT["Germany"] must agree with
+    test_normalize_parcel_de_basic_fields (url always None),
+    test_normalize_parcel_de_delivered_at_and_pickup (pickup_point populates)
+    and test_normalize_parcel_de_weight_and_dimensions_from_real_shape."""
+    assert CAPABILITIES_BY_VARIANT["Germany"] == {
+        "weight",
+        "dimensions",
+        "delivery_window",
+        "pickup_point",
+        "history",
+    }

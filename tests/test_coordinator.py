@@ -6,7 +6,7 @@ import pytest
 
 from custom_components.dpd.api import DpdApiError, DpdAuthError
 from custom_components.dpd.const import (
-    CAPABILITIES,
+    CAPABILITIES_BY_VARIANT,
     CONF_DELIVERED_FILTER_AMOUNT,
     CONF_DELIVERED_FILTER_TYPE,
     CONF_INCLUDE_HISTORY,
@@ -921,13 +921,17 @@ def test_normalize_returns_carrier_agnostic_keys():
 
 def test_capabilities_are_known_values():
     """A typo here would silently misreport this carrier on the docs site."""
-    assert CAPABILITIES <= KNOWN_CAPABILITIES
+    for variant, fields in CAPABILITIES_BY_VARIANT.items():
+        assert fields <= KNOWN_CAPABILITIES, variant
 
 
 def test_capabilities_match_normalize_parcel():
-    """CAPABILITIES must agree with test_normalize_returns_carrier_agnostic_keys
-    and test_normalize_carries_weight_and_dimensions_when_provided."""
-    assert CAPABILITIES == {
+    """CAPABILITIES_BY_VARIANT["Other"] must agree with
+    test_normalize_returns_carrier_agnostic_keys and
+    test_normalize_carries_weight_and_dimensions_when_provided — both exercise
+    the general (myDPD) normalize_parcel(), not DE's. See test_de.py for the
+    DE-side equivalent."""
+    assert CAPABILITIES_BY_VARIANT["Other"] == {
         "weight",
         "dimensions",
         "delivery_window",

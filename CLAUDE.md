@@ -68,6 +68,12 @@ on whether a `DpdDeSession` was constructed; everything past that one point
 2026-08-17 only login + an empty inbox are wire-confirmed on a real account —
 treat every mapped status/slot as provisional. Full envelope shape, error-code
 handling, and hardware-ID persistence: [.claude/rules/germany.md](.claude/rules/germany.md).
+`normalize_parcel_de` never populates `url` (DE exposes no tracking-page
+link) though it does populate weight/dimensions/delivery_window/pickup_point
+— `const.py`'s `CAPABILITIES_BY_VARIANT["Germany"]` reflects exactly that gap
+against `["Other"]`'s full set; keep the two in lockstep with any change to
+either normalize function (2026-08-23, replacing the single flat
+`CAPABILITIES` that used to overclaim `url` for DE).
 
 **Parcel core (status/pickup, detail cache, history, outgoing, entities)** —
 unmapped `raw_status` falls to `ParcelStatus.UNKNOWN` with a one-shot WARNING;

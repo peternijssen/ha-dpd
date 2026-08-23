@@ -49,14 +49,26 @@ KNOWN_CAPABILITIES = frozenset(
     {"weight", "dimensions", "delivery_window", "pickup_point", "url", "history"}
 )
 
-# Which optional contract fields this carrier's API actually populates — feeds
-# the comparison table on the docs site. Keep in lockstep with
-# normalize_parcel() in parcels.py: everything not listed here comes back as a
-# literal None there. DPD's per-parcel detail call fills weight, dimensions,
-# the FMP delivery window, opt-in history and a ParcelShop pickup point name.
-CAPABILITIES = frozenset(
-    {"weight", "dimensions", "delivery_window", "pickup_point", "url", "history"}
-)
+# Which optional contract fields each of this carrier's backends actually
+# populates — feeds the comparison table on the docs site, one row per
+# backend. Keyed the same as COUNTRY_OPTIONS' labels; order here is display
+# order. Keep each value in lockstep with its own normalize function:
+#   Other   — the shared myDPD backend (countries/general/__init__.py's
+#             normalize_parcel). Its per-parcel detail call fills weight,
+#             dimensions, the FMP delivery window, opt-in history and a
+#             ParcelShop pickup point name, plus a real tracking-page url.
+#   Germany — countries/de/__init__.py's normalize_parcel_de. Fills the same
+#             weight/dimensions/delivery_window/pickup_point/history (all
+#             best-effort — DE declares no unit for weight/dimensions, so
+#             those are inferred-magnitude guesses, not a confirmed API
+#             contract) but NOT url: DE exposes no tracking-page link, so
+#             normalize_parcel_de's "url" is always None.
+CAPABILITIES_BY_VARIANT = {
+    "Germany": frozenset({"weight", "dimensions", "delivery_window", "pickup_point", "history"}),
+    "Other": frozenset(
+        {"weight", "dimensions", "delivery_window", "pickup_point", "url", "history"}
+    ),
+}
 
 POLL_INTERVAL = 900  # seconds (15 minutes) — legacy hard-coded fallback
 
