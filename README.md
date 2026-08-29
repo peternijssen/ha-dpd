@@ -40,7 +40,7 @@ A custom Home Assistant integration that tracks your DPD shipments.
 
 ## Requirements
 
-- Home Assistant 2024.7 or newer
+- Home Assistant 2024.12 or newer
 - A DPD account (the same credentials you use in the myDPD mobile app)
 
 ## Installation
@@ -126,6 +126,13 @@ their entity_ids carry the same account suffix:
 | `DPD (account) Delivered parcels` | Recently delivered incoming parcels (configurable window) |
 | `DPD (account) Outgoing parcels` | Number of active outgoing parcels |
 | `DPD (account) Outgoing delivered parcels` | Recently delivered outgoing parcels (same configurable window) |
+| `DPD (account) Last update` | Diagnostic timestamp of the last successful poll — alert on this if the integration goes silently stale |
+
+A **`DPD (account) Deliveries`** calendar entity is also created, showing
+expected delivery dates for active parcels — read-only, no extra API calls.
+
+A **`DPD (account) Refresh`** button entity forces an immediate poll,
+without waiting for the next scheduled interval.
 
 Every parcel exposed on a sensor attribute uses a carrier-agnostic shape:
 

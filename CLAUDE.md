@@ -1,7 +1,7 @@
 # Working in this repository
 
 Home Assistant custom integration for DPD parcel tracking. Distributed via HACS;
-not part of HA core. **Silver** quality tier, minimum HA `2024.7.0`. No DTO layer.
+not part of HA core. **Silver** quality tier, minimum HA `2024.12.0`. No DTO layer.
 
 ## Shared conventions — fetch when relevant
 
