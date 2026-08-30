@@ -20,9 +20,8 @@ def reset_one_shot_warnings():
     makes them leak across tests, so whether a warning fires would otherwise
     depend on test order.
     """
-    from custom_components.dpd.countries import de
+    from custom_components.dpd.countries import de, general
     from custom_components.dpd.countries.de import session
-    from custom_components.dpd.countries import general
 
     de._unmapped_status_ids_logged.clear()
     de._status_unknown_logged.clear()
