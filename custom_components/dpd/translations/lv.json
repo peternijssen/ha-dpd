@@ -71,7 +71,7 @@
               "refresh_interval": "Atjaunināt ik pēc"
             },
             "data_description": {
-              "refresh_interval": "Cik bieži integrācija pārbauda DPD paku atjauninājumus. Lēnāks intervāls ir saudzīgāks pret DPD API; noklusējuma 30 minūtes pietiek lielākajai daļai paku."
+              "refresh_interval": "Cik bieži integrācija pārbauda DPD paku atjauninājumus. „Automātiski” (jauniem instalējumiem noklusējums) paātrina pārbaudes ap paredzēto piegādi un palēnina tās naktī; fiksēts intervāls tā vietā pārbauda ar nemainīgu ātrumu visu diennakti."
             }
           }
         }
@@ -81,6 +81,7 @@
   "selector": {
     "refresh_interval": {
       "options": {
+        "auto": "Automātiski (ieteicams)",
         "15": "15 minūtes",
         "30": "30 minūtes",
         "60": "60 minūtes",

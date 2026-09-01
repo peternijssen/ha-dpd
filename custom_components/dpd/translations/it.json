@@ -71,7 +71,7 @@
               "refresh_interval": "Aggiorna ogni"
             },
             "data_description": {
-              "refresh_interval": "Con quale frequenza l'integrazione controlla DPD per gli aggiornamenti dei pacchi. Un intervallo più lento è più delicato per l'API di DPD; il valore predefinito di 30 minuti è sufficiente per la maggior parte dei pacchi."
+              "refresh_interval": "Con quale frequenza l'integrazione controlla DPD per gli aggiornamenti dei pacchi. \"Automatico\" (predefinito per le nuove installazioni) accelera i controlli in prossimità di una consegna prevista e rallenta durante la notte; un intervallo fisso controlla invece a quel ritmo costante 24 ore su 24."
             }
           }
         }
@@ -81,6 +81,7 @@
   "selector": {
     "refresh_interval": {
       "options": {
+        "auto": "Automatico (consigliato)",
         "15": "15 minuti",
         "30": "30 minuti",
         "60": "60 minuti",

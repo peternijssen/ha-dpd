@@ -71,7 +71,7 @@
               "refresh_interval": "Atnaujinti kas"
             },
             "data_description": {
-              "refresh_interval": "Kaip dažnai integracija tikrina DPD siuntų atnaujinimus. Lėtesnis intervalas švelnesnis DPD API; numatytosios 30 minučių pakanka daugumai siuntų."
+              "refresh_interval": "Kaip dažnai integracija tikrina DPD siuntų atnaujinimus. „Automatinis“ (numatytasis naujiems diegimams) pagreitina tikrinimą prieš numatomą pristatymą ir sulėtina naktį; fiksuotas intervalas vietoj to tikrina pastoviu greičiu visą parą."
             }
           }
         }
@@ -81,6 +81,7 @@
   "selector": {
     "refresh_interval": {
       "options": {
+        "auto": "Automatinis (rekomenduojama)",
         "15": "15 minučių",
         "30": "30 minučių",
         "60": "60 minučių",

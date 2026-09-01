@@ -1,4 +1,5 @@
 """Tests for the DPD diagnostics handler."""
+from datetime import timedelta
 from unittest.mock import MagicMock
 
 import pytest
@@ -19,6 +20,8 @@ def _entry_with_runtime_data(
     outgoing_active: list[dict] | None = None,
     outgoing_delivered: list[dict] | None = None,
     last_update_success: bool = True,
+    current_tier_minutes: int | None = 45,
+    update_interval: timedelta | None = timedelta(minutes=45),
 ) -> MagicMock:
     coordinator = MagicMock()
     coordinator.data = {
@@ -28,6 +31,10 @@ def _entry_with_runtime_data(
         "outgoing_delivered": outgoing_delivered or [],
     }
     coordinator.last_update_success = last_update_success
+    # Explicit, not left as an unconfigured MagicMock attribute, or the
+    # "polling" block below would carry a MagicMock instead of a real value.
+    coordinator.current_tier_minutes = current_tier_minutes
+    coordinator.update_interval = update_interval
 
     entry = MagicMock()
     entry.data = {"email": "user@example.com", "password": "secret", "bu": "DPD-NL"}
@@ -89,6 +96,28 @@ async def test_diagnostics_reports_counts_and_update_success():
     }
     assert result["outgoing_delivered"][0]["parcelNumber"] == "**REDACTED**"
     assert result["last_update_success"] is False
+
+
+@pytest.mark.asyncio
+async def test_diagnostics_surfaces_polling_state():
+    entry = _entry_with_runtime_data(
+        current_tier_minutes=15, update_interval=timedelta(minutes=15)
+    )
+    result = await async_get_config_entry_diagnostics(MagicMock(), entry)
+    assert result["polling"] == {
+        "current_tier_minutes": 15,
+        "update_interval_seconds": 15 * 60,
+    }
+
+
+@pytest.mark.asyncio
+async def test_diagnostics_polling_handles_suspended_interval():
+    entry = _entry_with_runtime_data(current_tier_minutes=None, update_interval=None)
+    result = await async_get_config_entry_diagnostics(MagicMock(), entry)
+    assert result["polling"] == {
+        "current_tier_minutes": None,
+        "update_interval_seconds": None,
+    }
 
 
 def test_to_redact_includes_pii_keys():

@@ -1,4 +1,4 @@
-# DPD Parcel Tracker
+# DPD, known as BRT in Italy — Parcel Tracker
 
 [![Release](https://img.shields.io/github/v/release/ha-parcel-integrations/ha-dpd.svg)](https://github.com/ha-parcel-integrations/ha-dpd/releases)
 [![HACS](https://img.shields.io/badge/HACS-Default-41BDF5.svg)](https://github.com/hacs/integration)
@@ -6,7 +6,10 @@
 
 > 💬 Questions or feedback? Join the discussion on the [Home Assistant community](https://community.home-assistant.io/t/packages-postnl-dhl-nl-dpd-and-gls-parcel-integration/112433/).
 
-A custom Home Assistant integration that tracks your DPD shipments.
+A custom Home Assistant integration that tracks your DPD shipments — including
+shipments handled through **BRT**, DPD's brand name in Italy. Same operator,
+same myDPD backend; BRT is just DPD's public identity in that one country, so
+this integration answers to both names there.
 
 ## Contents
 
@@ -15,6 +18,7 @@ A custom Home Assistant integration that tracks your DPD shipments.
 - [Installation](#installation)
 - [Configuration](#configuration)
 - [Options](#options)
+- [Dynamic polling](#dynamic-polling)
 - [Removal](#removal)
 - [Sensors](#sensors)
 - [Parcel status reference](#parcel-status-reference)
@@ -98,7 +102,33 @@ sections:
 
 | Option | Description |
 |---|---|
-| Refresh every | How often the integration checks DPD. Choices: **15 / 30 / 60 / 120 / 240 minutes** — default 30. A slower interval is gentler on DPD's consumer API. Changes take effect immediately, no HA restart needed. |
+| Refresh every | **Automatic**, or a fixed **15 / 30 / 60 / 120 / 240 minutes**. New installs default to Automatic; existing installs keep their current fixed value until changed. Changes take effect immediately, no HA restart needed. See [Dynamic polling](#dynamic-polling) below. |
+
+## Dynamic polling
+
+You can set **Refresh every** to **Automatic** instead of a fixed number of
+minutes. Instead of polling DPD at the same rate around the clock — for both
+the general/myDPD backend and DPD Germany — the integration adjusts its own
+cadence to what your parcels are actually doing:
+
+- **Quiet hours** — no polling between 00:00–06:00 local time, aside from one
+  catch-up check at each end of that window (around midnight and around 6
+  AM), so an overnight update is never missed.
+- **Hot (every 15 minutes)** — while any tracked incoming or outgoing parcel
+  is out for delivery today, starting an hour before its delivery window
+  opens (or immediately if no window is known yet).
+- **Normal (every 45 minutes)** otherwise — this is also the minimum cadence,
+  since it's the only way to discover a new shipment that appears on the
+  account without going through Home Assistant. Delivered parcels never
+  affect the cadence — only what's still in transit counts.
+- A small, fixed per-install offset is added on top, so not every DPD
+  installation out there polls at exactly the same second.
+
+This is opt-in for now, but it's expected to become the default — and
+eventually the only — polling behaviour across the parcel-integrations
+suite. If you try Automatic, we'd genuinely like to hear how it goes: share
+your experience in [this
+discussion](https://github.com/orgs/ha-parcel-integrations/discussions/12).
 
 ## Removal
 

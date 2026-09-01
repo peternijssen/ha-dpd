@@ -71,7 +71,7 @@
               "refresh_interval": "Värskenda iga"
             },
             "data_description": {
-              "refresh_interval": "Kui tihti sidumine kontrollib DPD-lt pakkide uuendusi. Aeglasem intervall on DPD API-le leebem; vaikimisi 30 minutit sobib enamikule pakkidele."
+              "refresh_interval": "Kui tihti sidumine kontrollib DPD-lt pakkide uuendusi. „Automaatne“ (uute paigalduste vaikeväärtus) kiirendab kontrolle eeldatava kättetoimetamise ajal ja aeglustab neid öösel; kindel intervall kontrollib selle asemel ööpäevaringselt ühtlase kiirusega."
             }
           }
         }
@@ -81,6 +81,7 @@
   "selector": {
     "refresh_interval": {
       "options": {
+        "auto": "Automaatne (soovitatav)",
         "15": "15 minutit",
         "30": "30 minutit",
         "60": "60 minutit",

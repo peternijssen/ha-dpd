@@ -71,7 +71,7 @@
               "refresh_interval": "Aktualizovat každých"
             },
             "data_description": {
-              "refresh_interval": "Jak často integrace kontroluje aktualizace zásilek u DPD. Pomalejší interval je šetrnější k API DPD; výchozích 30 minut stačí pro většinu zásilek."
+              "refresh_interval": "Jak často integrace kontroluje aktualizace zásilek u DPD. „Automaticky“ (výchozí u nových instalací) zrychlí kontroly kolem očekávaného doručení a zpomalí je přes noc; pevný interval místo toho kontroluje stálou rychlostí po celý den."
             }
           }
         }
@@ -81,6 +81,7 @@
   "selector": {
     "refresh_interval": {
       "options": {
+        "auto": "Automaticky (doporučeno)",
         "15": "15 minut",
         "30": "30 minut",
         "60": "60 minut",

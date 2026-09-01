@@ -71,7 +71,7 @@
               "refresh_interval": "Osvježi svakih"
             },
             "data_description": {
-              "refresh_interval": "Koliko često integracija provjerava DPD za ažuriranja paketa. Sporiji interval je blaži prema DPD-ovom API-ju; zadanih 30 minuta dovoljno je za većinu paketa."
+              "refresh_interval": "Koliko često integracija provjerava DPD za ažuriranja paketa. „Automatski” (zadano za nove instalacije) ubrzava provjere oko očekivane dostave i usporava ih noću; fiksni interval umjesto toga provjerava stalnom brzinom cijeli dan."
             }
           }
         }
@@ -81,6 +81,7 @@
   "selector": {
     "refresh_interval": {
       "options": {
+        "auto": "Automatski (preporučeno)",
         "15": "15 minuta",
         "30": "30 minuta",
         "60": "60 minuta",

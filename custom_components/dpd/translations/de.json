@@ -71,7 +71,7 @@
               "refresh_interval": "Aktualisieren alle"
             },
             "data_description": {
-              "refresh_interval": "Wie oft die Integration bei DPD nach Paketaktualisierungen sucht. Ein langsameres Intervall ist schonender für die DPD-API; der Standardwert von 30 Minuten reicht für die meisten Pakete völlig aus."
+              "refresh_interval": "Wie oft die Integration bei DPD nach Paketaktualisierungen sucht. „Automatisch“ (Standard bei neuen Installationen) beschleunigt sich rund um eine erwartete Zustellung und verlangsamt sich über Nacht; ein festes Intervall fragt stattdessen rund um die Uhr mit konstanter Rate ab."
             }
           }
         }
@@ -81,6 +81,7 @@
   "selector": {
     "refresh_interval": {
       "options": {
+        "auto": "Automatisch (empfohlen)",
         "15": "15 Minuten",
         "30": "30 Minuten",
         "60": "60 Minuten",

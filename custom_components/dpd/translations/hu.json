@@ -71,7 +71,7 @@
               "refresh_interval": "Frissítés gyakorisága"
             },
             "data_description": {
-              "refresh_interval": "Milyen gyakran ellenőrzi az integráció a DPD-nél a csomagfrissítéseket. A lassabb időköz kíméletesebb a DPD API-jával szemben; az alapértelmezett 30 perc a legtöbb csomaghoz elegendő."
+              "refresh_interval": "Milyen gyakran ellenőrzi az integráció a DPD-nél a csomagfrissítéseket. Az „Automatikus” (az új telepítések alapértelmezett értéke) felgyorsítja az ellenőrzést a várható kézbesítés körül, és éjszaka lelassítja; a rögzített időköz ehelyett éjjel-nappal állandó ütemben ellenőriz."
             }
           }
         }
@@ -81,6 +81,7 @@
   "selector": {
     "refresh_interval": {
       "options": {
+        "auto": "Automatikus (ajánlott)",
         "15": "15 perc",
         "30": "30 perc",
         "60": "60 perc",

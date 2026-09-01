@@ -71,7 +71,7 @@
               "refresh_interval": "Actualizar cada"
             },
             "data_description": {
-              "refresh_interval": "Con qué frecuencia la integración consulta a DPD las actualizaciones de los paquetes. Un intervalo más lento es más suave para la API de DPD; el valor predeterminado de 30 minutos es suficiente para la mayoría de los paquetes."
+              "refresh_interval": "Con qué frecuencia la integración consulta a DPD las actualizaciones de los paquetes. «Automático» (el valor predeterminado para instalaciones nuevas) acelera la consulta cerca de una entrega prevista y la ralentiza durante la noche; un intervalo fijo consulta a ese ritmo constante durante todo el día."
             }
           }
         }
@@ -81,6 +81,7 @@
   "selector": {
     "refresh_interval": {
       "options": {
+        "auto": "Automático (recomendado)",
         "15": "15 minutos",
         "30": "30 minutos",
         "60": "60 minutos",

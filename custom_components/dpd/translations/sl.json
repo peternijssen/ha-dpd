@@ -71,7 +71,7 @@
               "refresh_interval": "Osveži vsakih"
             },
             "data_description": {
-              "refresh_interval": "Kako pogosto integracija preverja DPD za posodobitve paketov. Počasnejši interval je prijaznejši do DPD-jevega API-ja; privzetih 30 minut zadostuje za večino paketov."
+              "refresh_interval": "Kako pogosto integracija preverja DPD za posodobitve paketov. „Samodejno” (privzeto za nove namestitve) pospeši preverjanje okoli pričakovane dostave in ga upočasni čez noč; fiksni interval namesto tega preverja s konstantno hitrostjo ves čas."
             }
           }
         }
@@ -81,6 +81,7 @@
   "selector": {
     "refresh_interval": {
       "options": {
+        "auto": "Samodejno (priporočeno)",
         "15": "15 minut",
         "30": "30 minut",
         "60": "60 minut",

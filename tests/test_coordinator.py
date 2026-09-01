@@ -10,12 +10,23 @@ from custom_components.dpd.const import (
     CONF_DELIVERED_FILTER_AMOUNT,
     CONF_DELIVERED_FILTER_TYPE,
     CONF_INCLUDE_HISTORY,
+    CONF_REFRESH_INTERVAL,
+    HOT_INTERVAL_MINUTES,
     KNOWN_CAPABILITIES,
+    MID_INTERVAL_MINUTES,
+    REFRESH_INTERVAL_AUTO,
+    STAGGER_MINUTES,
     ParcelStatus,
 )
 from custom_components.dpd.coordinator import (
     DpdCoordinator,
+    _hottest_tier_minutes,
+    _in_quiet_window,
+    _next_anchor,
+    _next_update_interval,
     _refresh_interval,
+    _refresh_setting,
+    _stagger_minutes,
 )
 from custom_components.dpd.parcels import (
     _apply_delivered_filter_canonical,
@@ -36,7 +47,7 @@ from custom_components.dpd.parcels import (
     sort_parcels_by_ts,
 )
 
-from .payloads import shipment_sample
+from .payloads import envelope, shipment_sample
 
 
 def _mock_entry(
@@ -44,13 +55,17 @@ def _mock_entry(
     filter_amount: int = 7,
     *,
     include_history: bool = False,
+    refresh_interval: str | int | None = None,
 ) -> MagicMock:
     entry = MagicMock()
+    entry.entry_id = "test-entry-id"
     entry.options = {
         CONF_DELIVERED_FILTER_TYPE: filter_type,
         CONF_DELIVERED_FILTER_AMOUNT: filter_amount,
         CONF_INCLUDE_HISTORY: include_history,
     }
+    if refresh_interval is not None:
+        entry.options[CONF_REFRESH_INTERVAL] = refresh_interval
     return entry
 
 
@@ -1606,6 +1621,176 @@ def test_refresh_interval_reads_minutes_from_options():
     entry = MagicMock()
     entry.options = {"refresh_interval": 120}
     assert _refresh_interval(entry).total_seconds() == 120 * 60
+
+
+def test_refresh_interval_starts_hot_when_auto():
+    entry = _mock_entry(refresh_interval=REFRESH_INTERVAL_AUTO)
+    assert _refresh_interval(entry).total_seconds() == HOT_INTERVAL_MINUTES * 60
+
+
+def test_refresh_setting_passes_through_auto():
+    entry = _mock_entry(refresh_interval=REFRESH_INTERVAL_AUTO)
+    assert _refresh_setting(entry) == REFRESH_INTERVAL_AUTO
+
+
+# ---------------------------------------------------------------------------
+# Dynamic polling (dynamic-polling.md Section 2.2, account-based) — pure
+# helpers
+# ---------------------------------------------------------------------------
+
+UTC = timezone.utc
+
+
+def test_quiet_window_is_midnight_to_six():
+    assert _in_quiet_window(datetime(2026, 1, 1, 0, 0, tzinfo=UTC))
+    assert _in_quiet_window(datetime(2026, 1, 1, 5, 59, tzinfo=UTC))
+    assert not _in_quiet_window(datetime(2026, 1, 1, 6, 0, tzinfo=UTC))
+    assert not _in_quiet_window(datetime(2026, 1, 1, 23, 59, tzinfo=UTC))
+
+
+def test_next_anchor_before_six_is_six_today():
+    now = datetime(2026, 1, 1, 2, 30, tzinfo=UTC)
+    assert _next_anchor(now) == datetime(2026, 1, 1, 6, 0, tzinfo=UTC)
+
+
+def test_next_anchor_after_six_is_midnight_tomorrow():
+    now = datetime(2026, 1, 1, 14, 0, tzinfo=UTC)
+    assert _next_anchor(now) == datetime(2026, 1, 2, 0, 0, tzinfo=UTC)
+
+
+def test_stagger_is_stable_and_bounded():
+    a = _stagger_minutes("entry-1")
+    b = _stagger_minutes("entry-1")
+    c = _stagger_minutes("entry-2")
+    assert a == b
+    assert 0 <= a < STAGGER_MINUTES
+    assert 0 <= c < STAGGER_MINUTES
+
+
+def test_tier_is_mid_when_nothing_active():
+    assert (
+        _hottest_tier_minutes([], datetime(2026, 1, 1, 12, tzinfo=UTC))
+        == MID_INTERVAL_MINUTES
+    )
+
+
+def test_tier_is_mid_for_non_hot_statuses():
+    now = datetime(2026, 1, 1, 12, tzinfo=UTC)
+    parcels = [
+        {"status": ParcelStatus.REGISTERED, "planned_from": None},
+        {"status": ParcelStatus.PROBLEM, "planned_from": None},
+        {"status": ParcelStatus.RETURNING, "planned_from": None},
+    ]
+    assert _hottest_tier_minutes(parcels, now) == MID_INTERVAL_MINUTES
+
+
+def test_tier_is_hot_when_out_for_delivery_without_planned_from():
+    now = datetime(2026, 1, 1, 12, tzinfo=UTC)
+    parcels = [
+        {"status": ParcelStatus.IN_TRANSIT, "planned_from": None},
+        {"status": ParcelStatus.OUT_FOR_DELIVERY, "planned_from": None},
+    ]
+    assert _hottest_tier_minutes(parcels, now) == HOT_INTERVAL_MINUTES
+
+
+def test_tier_is_hot_when_planned_from_is_unparseable():
+    now = datetime(2026, 1, 1, 12, tzinfo=UTC)
+    parcels = [
+        {"status": ParcelStatus.OUT_FOR_DELIVERY, "planned_from": "not-a-date"}
+    ]
+    assert _hottest_tier_minutes(parcels, now) == HOT_INTERVAL_MINUTES
+
+
+def test_tier_is_hot_within_lookahead_of_planned_from():
+    planned = datetime(2026, 1, 1, 13, 0, tzinfo=UTC)
+    now = planned - timedelta(minutes=30)  # inside the 1h lookahead
+    parcels = [
+        {"status": ParcelStatus.OUT_FOR_DELIVERY, "planned_from": planned.isoformat()}
+    ]
+    assert _hottest_tier_minutes(parcels, now) == HOT_INTERVAL_MINUTES
+
+
+def test_tier_is_mid_before_lookahead_of_planned_from():
+    planned = datetime(2026, 1, 1, 13, 0, tzinfo=UTC)
+    now = planned - timedelta(hours=3)  # well outside the 1h lookahead
+    parcels = [
+        {"status": ParcelStatus.OUT_FOR_DELIVERY, "planned_from": planned.isoformat()}
+    ]
+    assert _hottest_tier_minutes(parcels, now) == MID_INTERVAL_MINUTES
+
+
+def test_daytime_candidate_outside_window_is_tier_plus_stagger():
+    now = datetime(2026, 1, 1, 12, 0, tzinfo=UTC)
+    interval = _next_update_interval(now, MID_INTERVAL_MINUTES, "entry-1")
+    stagger = _stagger_minutes("entry-1")
+    assert interval == timedelta(minutes=MID_INTERVAL_MINUTES + stagger)
+
+
+def test_now_inside_quiet_window_jumps_to_next_anchor():
+    now = datetime(2026, 1, 1, 1, 0, tzinfo=UTC)  # an anchor poll itself
+    interval = _next_update_interval(now, HOT_INTERVAL_MINUTES, "entry-1")
+    assert now + interval == datetime(2026, 1, 1, 6, 0, tzinfo=UTC)
+
+
+def test_candidate_landing_in_quiet_window_clamps_to_the_midnight_anchor():
+    now = datetime(2026, 1, 1, 23, 50, tzinfo=UTC)
+    interval = _next_update_interval(now, MID_INTERVAL_MINUTES, "entry-1")
+    assert now + interval == datetime(2026, 1, 2, 0, 0, tzinfo=UTC)
+
+
+# ---------------------------------------------------------------------------
+# Dynamic polling — wired into _async_update_data
+# ---------------------------------------------------------------------------
+
+
+async def test_auto_mode_recomputes_interval_and_never_stops(hass):
+    """Zero pending parcels must not suspend polling — it's the only discovery path."""
+    entry = _mock_entry(refresh_interval=REFRESH_INTERVAL_AUTO)
+    client = MagicMock()
+    client.bu = "DPD-NL"
+    client.async_get_parcel_detail = AsyncMock(return_value=None)
+    client.async_get_parcels = AsyncMock(return_value=envelope())
+    coordinator = DpdCoordinator(hass, client, entry)
+
+    await coordinator._async_update_data()
+
+    assert coordinator.current_tier_minutes == MID_INTERVAL_MINUTES
+    assert coordinator.update_interval is not None
+
+
+async def test_auto_mode_goes_hot_for_out_for_delivery(hass):
+    entry = _mock_entry(refresh_interval=REFRESH_INTERVAL_AUTO)
+    client = MagicMock()
+    client.bu = "DPD-NL"
+    client.async_get_parcel_detail = AsyncMock(return_value=None)
+    client.async_get_parcels = AsyncMock(
+        return_value=envelope(
+            incoming=[shipment_sample("PARCEL_OUT_FOR_DELIVERY")]
+        )
+    )
+    coordinator = DpdCoordinator(hass, client, entry)
+
+    with patch(
+        "custom_components.dpd.coordinator._hottest_tier_minutes",
+        return_value=HOT_INTERVAL_MINUTES,
+    ):
+        await coordinator._async_update_data()
+
+    assert coordinator.current_tier_minutes == HOT_INTERVAL_MINUTES
+
+
+async def test_fixed_mode_keeps_configured_interval(hass):
+    entry = _mock_entry(refresh_interval=60)
+    client = MagicMock()
+    client.bu = "DPD-NL"
+    client.async_get_parcel_detail = AsyncMock(return_value=None)
+    client.async_get_parcels = AsyncMock(return_value=envelope())
+    coordinator = DpdCoordinator(hass, client, entry)
+
+    await coordinator._async_update_data()
+
+    assert coordinator.current_tier_minutes is None
+    assert coordinator.update_interval == timedelta(minutes=60)
 
 
 # ---------------------------------------------------------------------------

@@ -38,7 +38,27 @@ entry. Runtime-only; the tests don't catch a regression here.
   `async_set_unique_id` + `_abort_if_unique_id_mismatch` so a *different* account's
   credentials abort instead of rebinding.
 - **Options flow** has no `entry.add_update_listener` — `async_schedule_reload` on
-  submit. `CONF_REFRESH_INTERVAL` = 15/30/60/120/240 min, default 30.
+  submit. `CONF_REFRESH_INTERVAL` = 15/30/60/120/240 min, default 30, plus
+  `"auto"` (dynamic, status-driven polling — see below). New config entries
+  default to `"auto"`; an entry created before this option existed keeps its
+  numeric value untouched.
+
+**Dynamic polling (Phase 1 of `carrier-research/dynamic-polling.md`, account-based
+model, Section 2.2)** — `"auto"` is one more selectable `CONF_REFRESH_INTERVAL`
+value, not a replacement for the numeric options. When selected, the coordinator
+recomputes `update_interval` at the end of every `_async_update_data` (both the
+general/BU path and the DE SOAP path funnel through the same recompute, since
+`_async_update_data` is the one dispatch point past the fetch): a 15 min hot tier
+the moment any active incoming *or* outgoing parcel is `out_for_delivery`
+(starting 1h before `planned_from`, or immediately if missing), a 45 min mid
+tier otherwise — which never stops, since the account call is the only way to
+discover a new shipment that appears without going through this integration —
+and a 00:00–06:00 local-time quiet window with anchor polls at each end, plus a
+small deterministic per-`entry_id` stagger. `problem`/`returning` stay in the
+mid tier, not hot. Surfaced in diagnostics under `"polling"`
+(`current_tier_minutes`, `update_interval_seconds`). Do not build a Phase 2
+(making `auto` unconditional / dropping the dropdown) without a separate
+maintainer decision — that is explicitly out of scope for this rollout.
 - `aiohttp.ClientError` is not caught in the coordinator (wrapped automatically).
   Config: `ConfigEntry.runtime_data` (`DpdData`), `PARALLEL_UPDATES = 0`,
   coordinator takes `config_entry=entry`.

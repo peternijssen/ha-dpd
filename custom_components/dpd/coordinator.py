@@ -1,6 +1,7 @@
 """Coordinator for the DPD integration."""
 from __future__ import annotations
 
+import hashlib
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import Any
@@ -10,6 +11,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.util import dt as dt_util
 
 from .api import DpdApiClient, DpdApiError, DpdAuthError
 from .const import (
@@ -18,6 +20,13 @@ from .const import (
     DEFAULT_INCLUDE_HISTORY,
     DEFAULT_REFRESH_INTERVAL,
     DOMAIN,
+    HOT_INTERVAL_MINUTES,
+    HOT_LOOKAHEAD_HOURS,
+    MID_INTERVAL_MINUTES,
+    QUIET_WINDOW_END_HOUR,
+    QUIET_WINDOW_START_HOUR,
+    REFRESH_INTERVAL_AUTO,
+    STAGGER_MINUTES,
     ParcelStatus,
 )
 from .countries.de import async_get_all_parcels_de
@@ -39,10 +48,89 @@ from .parcels import (
 _LOGGER = logging.getLogger(__name__)
 
 
+def _refresh_setting(entry: ConfigEntry) -> str | int:
+    """Return the raw configured refresh setting — ``"auto"`` or a minute count."""
+    return entry.options.get(CONF_REFRESH_INTERVAL, DEFAULT_REFRESH_INTERVAL)
+
+
 def _refresh_interval(entry: ConfigEntry) -> timedelta:
-    """Return the configured refresh interval as a ``timedelta``."""
-    minutes = int(entry.options.get(CONF_REFRESH_INTERVAL, DEFAULT_REFRESH_INTERVAL))
-    return timedelta(minutes=minutes)
+    """Return the coordinator's *initial* update interval.
+
+    For a fixed setting this is the final word. For ``"auto"`` it is only a
+    starting point — the hot cadence, so the first poll after setup happens
+    promptly — since ``_async_update_data`` recomputes it every refresh via
+    ``_next_update_interval``.
+    """
+    setting = _refresh_setting(entry)
+    if setting == REFRESH_INTERVAL_AUTO:
+        return timedelta(minutes=HOT_INTERVAL_MINUTES)
+    return timedelta(minutes=int(setting))
+
+
+def _stagger_minutes(entry_id: str) -> int:
+    """Deterministic per-install offset, stable across restarts."""
+    digest = hashlib.sha256(entry_id.encode()).hexdigest()
+    return int(digest, 16) % STAGGER_MINUTES
+
+
+def _in_quiet_window(moment: datetime) -> bool:
+    """Whether ``moment`` (local time) falls in the no-polling window."""
+    return QUIET_WINDOW_START_HOUR <= moment.hour < QUIET_WINDOW_END_HOUR
+
+
+def _next_anchor(now: datetime) -> datetime:
+    """Return the next of the two daily anchors (00:00 / 06:00 local)."""
+    six_today = now.replace(
+        hour=QUIET_WINDOW_END_HOUR, minute=0, second=0, microsecond=0
+    )
+    if now < six_today:
+        return six_today
+    midnight_tomorrow = (now + timedelta(days=1)).replace(
+        hour=QUIET_WINDOW_START_HOUR, minute=0, second=0, microsecond=0
+    )
+    return midnight_tomorrow
+
+
+def _hottest_tier_minutes(active_parcels: list[dict], now: datetime) -> int:
+    """Tier for the account-based model (dynamic-polling.md Section 2.2).
+
+    Unlike a barcode-based coordinator this never returns ``None`` — a single
+    account call already returns the full account state, so the mid-tier
+    poll is also the only way to discover a new shipment. ``active_parcels``
+    is expected to already be incoming + outgoing, not-yet-delivered.
+    """
+    for parcel in active_parcels:
+        if parcel["status"] != ParcelStatus.OUT_FOR_DELIVERY:
+            continue
+        planned_from = parcel.get("planned_from")
+        if not planned_from:
+            return HOT_INTERVAL_MINUTES
+        planned_dt = dt_util.parse_datetime(planned_from)
+        if planned_dt is None:
+            return HOT_INTERVAL_MINUTES
+        if dt_util.as_utc(now) >= dt_util.as_utc(planned_dt) - timedelta(
+            hours=HOT_LOOKAHEAD_HOURS
+        ):
+            return HOT_INTERVAL_MINUTES
+
+    return MID_INTERVAL_MINUTES
+
+
+def _next_update_interval(now: datetime, tier_minutes: int, entry_id: str) -> timedelta:
+    """Turn a tier into the coordinator's next ``update_interval``.
+
+    Clamp the naive next-due time forward to the next anchor whenever it
+    would land inside the quiet window — including when ``now`` itself is
+    already inside it (an anchor poll computing its own follow-up).
+    """
+    if _in_quiet_window(now):
+        return _next_anchor(now) - now
+
+    stagger = timedelta(minutes=_stagger_minutes(entry_id))
+    candidate = now + timedelta(minutes=tier_minutes) + stagger
+    if _in_quiet_window(candidate):
+        return _next_anchor(now) - now
+    return candidate - now
 
 
 class DpdCoordinator(DataUpdateCoordinator[dict[str, list[dict]]]):
@@ -114,6 +202,15 @@ class DpdCoordinator(DataUpdateCoordinator[dict[str, list[dict]]]):
         # sensor so users can alert on a silently-stale integration (the
         # count sensors only change when a value changes, not every poll).
         self.last_success_time: datetime | None = None
+        # Tier last computed by _hottest_tier_minutes when the refresh
+        # setting is "auto" — surfaced in diagnostics. None when polling at a
+        # fixed interval instead.
+        self._current_tier_minutes: int | None = None
+
+    @property
+    def current_tier_minutes(self) -> int | None:
+        """Tier minutes computed on the last "auto" refresh (diagnostics only)."""
+        return self._current_tier_minutes
 
     def _device_id(self) -> str | None:
         """Resolve (and cache) this account's device id for event payloads.
@@ -156,10 +253,27 @@ class DpdCoordinator(DataUpdateCoordinator[dict[str, list[dict]]]):
         }
 
         self.last_success_time = datetime.now(timezone.utc)
+
+        incoming_active = [p for p in incoming_all if not p["delivered"]]
+        outgoing_active = [p for p in outgoing_all if not p["delivered"]]
+
+        setting = _refresh_setting(self.config_entry)
+        if setting == REFRESH_INTERVAL_AUTO:
+            now = dt_util.now()
+            self._current_tier_minutes = _hottest_tier_minutes(
+                incoming_active + outgoing_active, now
+            )
+            self.update_interval = _next_update_interval(
+                now, self._current_tier_minutes, self.config_entry.entry_id
+            )
+        else:
+            self._current_tier_minutes = None
+            self.update_interval = timedelta(minutes=int(setting))
+
         return {
-            "incoming_active": [p for p in incoming_all if not p["delivered"]],
+            "incoming_active": incoming_active,
             "incoming_delivered": [p for p in incoming_all if p["delivered"]],
-            "outgoing_active": [p for p in outgoing_all if not p["delivered"]],
+            "outgoing_active": outgoing_active,
             "outgoing_delivered": [p for p in outgoing_all if p["delivered"]],
         }
 

@@ -60,6 +60,14 @@ async def async_get_config_entry_diagnostics(
             "outgoing_active": len(data.get("outgoing_active", [])),
             "outgoing_delivered": len(data.get("outgoing_delivered", [])),
         },
+        "polling": {
+            "current_tier_minutes": coordinator.current_tier_minutes,
+            "update_interval_seconds": (
+                coordinator.update_interval.total_seconds()
+                if coordinator.update_interval
+                else None
+            ),
+        },
         "incoming_active": async_redact_data(data.get("incoming_active", []), TO_REDACT),
         "incoming_delivered": async_redact_data(
             data.get("incoming_delivered", []), TO_REDACT

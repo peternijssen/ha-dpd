@@ -71,7 +71,7 @@
               "refresh_interval": "Atualizar a cada"
             },
             "data_description": {
-              "refresh_interval": "Com que frequência a integração verifica a DPD para atualizações de encomendas. Um intervalo mais lento é mais leve para a API da DPD; o padrão de 30 minutos é suficiente para a maioria das encomendas."
+              "refresh_interval": "Com que frequência a integração verifica a DPD para atualizações de encomendas. \"Automático\" (predefinição para novas instalações) acelera junto de uma entrega prevista e abranda durante a noite; um intervalo fixo verifica, em vez disso, a essa taxa constante ao longo do dia."
             }
           }
         }
@@ -81,6 +81,7 @@
   "selector": {
     "refresh_interval": {
       "options": {
+        "auto": "Automático (recomendado)",
         "15": "15 minutos",
         "30": "30 minutos",
         "60": "60 minutos",
