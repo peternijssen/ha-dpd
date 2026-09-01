@@ -85,7 +85,6 @@ _weight_units_warned = False
 _dimension_units_warned = False
 _service_codes_logged: set[Any] = set()
 _data_view_status_logged: set[str] = set()
-_empty_inbox_warned = False
 
 
 def _warn_unmapped_status_id(status_id: str) -> None:
@@ -287,20 +286,6 @@ def _warn_data_view_status(value: str) -> None:
         "DPD Germany inbox entry has DataViewStatus=%s (expected 'Owner') — "
         "some fields may be suppressed for this parcel. Open an issue: %s",
         value,
-        _NEW_ISSUE_URL,
-    )
-
-
-def _warn_empty_inbox_once() -> None:
-    """One-shot: the first poll where all three arrays are empty and login succeeded."""
-    global _empty_inbox_warned
-    if _empty_inbox_warned:
-        return
-    _empty_inbox_warned = True
-    _LOGGER.warning(
-        "DPD Germany login succeeded but the account inbox is completely "
-        "empty (no incoming, outgoing or returning parcels). If this "
-        "account should have parcels, please open an issue: %s",
         _NEW_ISSUE_URL,
     )
 
@@ -708,9 +693,6 @@ async def async_get_all_parcels_de(
     receiving = as_list(session_state.get("ReceiveTrackingDataList"))
     sending = as_list(session_state.get("SendTrackingDataList"))
     returning = as_list(session_state.get("ReturnTrackingDataList"))
-
-    if not receiving and not sending and not returning:
-        _warn_empty_inbox_once()
 
     tagged: list[tuple[dict, str]] = [(p, "incoming") for p in receiving]
     tagged += [(p, "outgoing") for p in sending]

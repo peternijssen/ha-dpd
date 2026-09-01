@@ -24,7 +24,6 @@ from custom_components.dpd.countries.de import (
     _warn_data_view_status,
     _warn_delivered_at_format,
     _warn_dimension_units,
-    _warn_empty_inbox_once,
     _warn_scan_timestamp_format,
     _warn_service_code_once,
     _warn_status_date_format,
@@ -601,20 +600,6 @@ async def test_async_get_all_parcels_de_splits_incoming_outgoing_returning():
 
 
 @pytest.mark.asyncio
-async def test_async_get_all_parcels_de_warns_once_on_empty_inbox(monkeypatch):
-    import custom_components.dpd.countries.de as de_mod
-
-    de_mod._empty_inbox_warned = False
-    warned = MagicMock()
-    monkeypatch.setattr(de_mod, "_warn_empty_inbox_once", warned)
-    de_session = MagicMock()
-    de_session.async_get_parcels = AsyncMock(return_value={})
-    await async_get_all_parcels_de(de_session)
-    warned.assert_called_once()
-    de_mod._empty_inbox_warned = False
-
-
-@pytest.mark.asyncio
 async def test_async_get_all_parcels_de_fetches_history_for_active_parcels_only():
     de_session = MagicMock()
     de_session.async_get_parcels = AsyncMock(
@@ -860,17 +845,6 @@ def test_warn_data_view_status_logs_once_per_value(caplog):
         _warn_data_view_status("Shared")
     assert sum("DataViewStatus=" in r.message for r in caplog.records) == 1
     de_mod._data_view_status_logged.clear()
-
-
-def test_warn_empty_inbox_once_logs_once(caplog):
-    import custom_components.dpd.countries.de as de_mod
-
-    de_mod._empty_inbox_warned = False
-    with caplog.at_level("WARNING"):
-        _warn_empty_inbox_once()
-        _warn_empty_inbox_once()
-    assert sum("inbox is completely empty" in r.message for r in caplog.records) == 1
-    de_mod._empty_inbox_warned = False
 
 
 def test_capabilities_match_normalize_parcel_de():

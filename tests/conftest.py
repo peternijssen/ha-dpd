@@ -33,7 +33,6 @@ def reset_one_shot_warnings():
     de._dimension_units_warned = False
     de._service_codes_logged.clear()
     de._data_view_status_logged.clear()
-    de._empty_inbox_warned = False
     session._keyphase_rotation_warned = False
     session._clock_skew_warned = False
     general._unknown_descriptions_logged.clear()
