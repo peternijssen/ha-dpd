@@ -1,4 +1,4 @@
-# DPD, known as BRT in Italy — Parcel Tracker
+# DPD & BRT Italy — Parcel Tracker
 
 [![Release](https://img.shields.io/github/v/release/ha-parcel-integrations/ha-dpd.svg)](https://github.com/ha-parcel-integrations/ha-dpd/releases)
 [![HACS](https://img.shields.io/badge/HACS-Default-41BDF5.svg)](https://github.com/hacs/integration)

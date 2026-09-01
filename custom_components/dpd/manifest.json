@@ -1,6 +1,6 @@
 {
   "domain": "dpd",
-  "name": "DPD",
+  "name": "DPD & BRT Italy",
   "codeowners": ["@peternijssen"],
   "config_flow": true,
   "documentation": "https://github.com/ha-parcel-integrations/ha-dpd",
