@@ -79,8 +79,9 @@ Full history and evidence trail: [.claude/rules/business-unit.md](.claude/rules/
 
 **Germany (`countries/de/`)** — wholly separate transport isolated in its own
 package: `countries/de/session.py` owns the SOAP session (double-wrapped
-envelope, two-stage login discovered via a third-party client capture, not
-the APK decompile `BUILD_PLAN_DE.md` was built from); `countries/de/__init__.py`
+envelope, two-stage login discovered by capturing a working client against a
+real account, not from the decompiled app the first notes were based on);
+`countries/de/__init__.py`
 owns derivation-first status mapping (`map_parcel_status_de`, no closed
 `StatusID` vocabulary) and `normalize_parcel_de`. `DpdCoordinator` dispatches
 on whether a `DpdDeSession` was constructed; everything past that one point

@@ -15,9 +15,8 @@ paths:
   `CONF_COUNTRY == COUNTRY_DE`), everything past that one dispatch point
   (sorting, filtering, event-firing) is shared with the general path.
 - **Two-stage login, not documented anywhere DPD publishes** — discovered by
-  capturing a working third-party client (`TA2k/ioBroker.parcel`) against a
-  real account, not from the APK decompile the original `BUILD_PLAN_DE.md`
-  was built from. An anonymous `getSessionFullState` (empty `SessionToken`)
+  capturing a working client against a real account, not from the decompiled
+  app the first notes were based on. An anonymous `getSessionFullState` (empty `SessionToken`)
   bootstraps a throwaway `SessionToken`; `getUserLogin` exchanges that plus
   credentials for the real account `SessionToken` + `cloudUserID`.
   `async_login()` always runs both steps — there is no one-stage path.
@@ -33,7 +32,7 @@ paths:
   `KeyPhase` is signed the same way (`compute_key_phase`; minute-derived
   MD5, see the docstring) but was never the actual bug.
 - **Failure detection reads `Ack` + a top-level singular `ErrorCode`**, not
-  `BUILD_PLAN_DE.md`'s decompiled `ErrorDataList[]` shape alone — real
+  the decompiled `ErrorDataList[]` shape alone — real
   rejections use both; `_error_codes()` unions them. `async_get_parcels()` /
   `async_call()` reauth **once** on `ERROR_SESSION_NOT_VALID` /
   `ERROR_KEYPHASE`, never loop; two consecutive `ERROR_KEYPHASE` responses
