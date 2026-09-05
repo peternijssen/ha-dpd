@@ -2,8 +2,7 @@
 
 Built from a static APK teardown; the first real populated account (two
 delivered parcels, 2026-08-18) confirmed the status map and the
-``StatusDate``/weight/dimension shapes below — see ``carrier-research``'s
-``dpd-de.md`` Log for the capture. Everything the capture didn't exercise
+``StatusDate``/weight/dimension shapes below. Everything the capture didn't exercise
 (in-transit ``StatusID`` values, non-DE-kg weight, an unmeasured parcel with
 no ``…ByCustomer`` fallback either) is still derivation-first: the
 ``StatusID`` string vocabulary has no closed enum, but the structural fields

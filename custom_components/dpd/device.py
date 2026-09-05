@@ -13,6 +13,8 @@ from homeassistant.helpers.entity import DeviceInfo
 
 from .const import DOMAIN
 
+ATTRIBUTION = "Data provided by DPD"
+
 
 def build_device_info(entry: ConfigEntry) -> DeviceInfo:
     """Return a DeviceInfo dict shared by all sensors for this account.

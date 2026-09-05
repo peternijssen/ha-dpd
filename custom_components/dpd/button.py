@@ -6,7 +6,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import DpdConfigEntry
-from .device import build_device_info
+from .device import ATTRIBUTION, build_device_info
 
 # A manual refresh is a single API round-trip; HA's per-entity throttling
 # adds nothing here.
@@ -33,7 +33,7 @@ class DpdRefreshButton(ButtonEntity):
 
     _attr_has_entity_name = True
     _attr_translation_key = "refresh"
-    _attr_attribution = "Data provided by DPD"
+    _attr_attribution = ATTRIBUTION
 
     def __init__(self, entry: DpdConfigEntry) -> None:
         """Initialise the refresh button."""

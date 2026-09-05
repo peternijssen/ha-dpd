@@ -148,9 +148,8 @@ DEFAULT_BU = "DPD-NL"
 COUNTRY_OPTIONS = BUSINESS_UNITS + [{"value": "DPD-DE", "label": "Germany"}]
 
 # ``DPD-UK`` has no real business-unit code of its own on the shared myDPD
-# backend (confirmed absent from the myDPD app's own BU list, see
-# carrier-research/dpd/dpd-log.md 2026-08-11) — but a UK account was
-# confirmed (2026-08-17, github.com/ha-parcel-integrations/.github/
+# backend (confirmed absent from the myDPD app's own BU list) — but a UK
+# account was confirmed (2026-08-17, github.com/ha-parcel-integrations/.github/
 # discussions/14) to log in and list its own parcels through the plain
 # DPD-NL flow. `bu` sent to Keycloak/consignee-sso/parcels/detail is
 # remapped through this table before use; `DpdApiClient.bu` (config,
@@ -246,11 +245,9 @@ DEFAULT_REFRESH_INTERVAL = 30  # minutes — default for entries that predate "a
 # existing entry keeps whatever it already has, numeric or "auto".
 DEFAULT_NEW_REFRESH_INTERVAL = REFRESH_INTERVAL_AUTO
 
-# Dynamic, status-driven polling — selected via "auto" above. See
-# carrier-research/dynamic-polling.md for the full algorithm and reasoning
-# (account-based model, Section 2.2 — applies to both the general/BU backend
-# and DPD Germany's SOAP backend, dispatched the same way as everything else
-# in the coordinator).
+# Dynamic, status-driven polling — selected via "auto" above. Account-based
+# model: applies to both the general/BU backend and DPD Germany's SOAP
+# backend, dispatched the same way as everything else in the coordinator.
 #
 # Quiet window: no polling between these local hours except the two anchors
 # below, for overnight / end-of-day catch-up.

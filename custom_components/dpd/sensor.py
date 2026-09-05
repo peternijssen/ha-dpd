@@ -20,7 +20,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from . import DpdConfigEntry
 from .const import DOMAIN, ParcelStatus
 from .coordinator import DpdCoordinator
-from .device import build_device_info
+from .device import ATTRIBUTION, build_device_info
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -108,7 +108,7 @@ class DpdIncomingParcelsSensor(CoordinatorEntity[DpdCoordinator], SensorEntity):
     _attr_has_entity_name = True
     _attr_translation_key = "incoming_parcels"
     _attr_state_class = SensorStateClass.MEASUREMENT
-    _attr_attribution = "Data provided by DPD"
+    _attr_attribution = ATTRIBUTION
     _unrecorded_attributes = frozenset({"parcels"})
 
     def __init__(
@@ -173,7 +173,7 @@ class DpdParcelSensor(CoordinatorEntity[DpdCoordinator], SensorEntity):
 
     _attr_has_entity_name = True
     _attr_translation_key = "parcel"
-    _attr_attribution = "Data provided by DPD"
+    _attr_attribution = ATTRIBUTION
     _unrecorded_attributes = frozenset({"raw", "history"})
 
     def __init__(
@@ -217,7 +217,7 @@ class DpdOutgoingParcelsSensor(CoordinatorEntity[DpdCoordinator], SensorEntity):
     _attr_has_entity_name = True
     _attr_translation_key = "outgoing_parcels"
     _attr_state_class = SensorStateClass.MEASUREMENT
-    _attr_attribution = "Data provided by DPD"
+    _attr_attribution = ATTRIBUTION
     _unrecorded_attributes = frozenset({"parcels"})
 
     def __init__(self, coordinator: DpdCoordinator, entry: ConfigEntry) -> None:
@@ -247,7 +247,7 @@ class DpdOutgoingDeliveredParcelsSensor(CoordinatorEntity[DpdCoordinator], Senso
     _attr_has_entity_name = True
     _attr_translation_key = "outgoing_delivered_parcels"
     _attr_state_class = SensorStateClass.MEASUREMENT
-    _attr_attribution = "Data provided by DPD"
+    _attr_attribution = ATTRIBUTION
     _unrecorded_attributes = frozenset({"parcels"})
 
     def __init__(self, coordinator: DpdCoordinator, entry: ConfigEntry) -> None:
@@ -277,7 +277,7 @@ class DpdDeliveredParcelsSensor(CoordinatorEntity[DpdCoordinator], SensorEntity)
     _attr_has_entity_name = True
     _attr_translation_key = "delivered_parcels"
     _attr_state_class = SensorStateClass.MEASUREMENT
-    _attr_attribution = "Data provided by DPD"
+    _attr_attribution = ATTRIBUTION
     _unrecorded_attributes = frozenset({"parcels"})
 
     def __init__(self, coordinator: DpdCoordinator, entry: ConfigEntry) -> None:
@@ -312,7 +312,7 @@ class DpdNextDeliverySensor(CoordinatorEntity[DpdCoordinator], SensorEntity):
     _attr_has_entity_name = True
     _attr_translation_key = "next_delivery"
     _attr_device_class = SensorDeviceClass.TIMESTAMP
-    _attr_attribution = "Data provided by DPD"
+    _attr_attribution = ATTRIBUTION
 
     def __init__(self, coordinator: DpdCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
@@ -365,7 +365,7 @@ class DpdEnRouteToParcelShopSensor(CoordinatorEntity[DpdCoordinator], SensorEnti
     _attr_has_entity_name = True
     _attr_translation_key = "en_route_to_parcel_shop"
     _attr_state_class = SensorStateClass.MEASUREMENT
-    _attr_attribution = "Data provided by DPD"
+    _attr_attribution = ATTRIBUTION
     _unrecorded_attributes = frozenset({"parcels"})
 
     def __init__(self, coordinator: DpdCoordinator, entry: ConfigEntry) -> None:
@@ -404,7 +404,7 @@ class DpdAwaitingPickupSensor(CoordinatorEntity[DpdCoordinator], SensorEntity):
     _attr_has_entity_name = True
     _attr_translation_key = "awaiting_pickup"
     _attr_state_class = SensorStateClass.MEASUREMENT
-    _attr_attribution = "Data provided by DPD"
+    _attr_attribution = ATTRIBUTION
     _unrecorded_attributes = frozenset({"parcels"})
 
     def __init__(self, coordinator: DpdCoordinator, entry: ConfigEntry) -> None:
@@ -443,7 +443,7 @@ class DpdLastUpdateSensor(CoordinatorEntity[DpdCoordinator], SensorEntity):
     _attr_translation_key = "last_update"
     _attr_device_class = SensorDeviceClass.TIMESTAMP
     _attr_entity_category = EntityCategory.DIAGNOSTIC
-    _attr_attribution = "Data provided by DPD"
+    _attr_attribution = ATTRIBUTION
 
     def __init__(self, coordinator: DpdCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
